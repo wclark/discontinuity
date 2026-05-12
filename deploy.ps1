@@ -1,6 +1,7 @@
 param(
   [string]$Profile = "georgist-login",
-  [string]$Bucket = "discontinuity.org"
+  [string]$Bucket = "discontinuity-website",
+  [string]$DistributionId = "E3V4IEGTIQS7EP"
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,3 +29,11 @@ function Assert-AwsSuccess {
   --profile $Profile `
   --cache-control "public, max-age=300"
 Assert-AwsSuccess "Syncing site to s3://$Bucket"
+
+if ($DistributionId) {
+  & $Aws cloudfront create-invalidation `
+    --distribution-id $DistributionId `
+    --paths "/*" `
+    --profile $Profile
+  Assert-AwsSuccess "Creating CloudFront invalidation"
+}

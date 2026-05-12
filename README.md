@@ -122,14 +122,13 @@ Only one authored choice exists per character per decision slot. Replaying that 
 The deployment script mirrors the existing static-site S3 process:
 
 ```powershell
-.\deploy.ps1 -Profile georgist-login -Bucket discontinuity.org
+.\deploy.ps1 -Profile georgist-login
 ```
 
-It syncs only the `site/` folder to `s3://discontinuity.org` with a short cache time and deletes removed files.
+It syncs only the `site/` folder to `s3://discontinuity-website`, the S3 website origin currently serving `discontinuity.org`, with a short cache time and deletes removed files. It also invalidates CloudFront distribution `E3V4IEGTIQS7EP`.
 
 If the AWS SSO session has expired, refresh the existing profile first:
 
 ```powershell
 aws login --profile georgist-login
 ```
-
