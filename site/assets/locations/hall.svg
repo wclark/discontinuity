@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Empty memorial hall</title>
+  <desc id="desc">A textural illustration of an old hall with stairs, draped portrait, and rainlit windows.</desc>
+  <defs>
+    <linearGradient id="wall" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#7b5d42"/>
+      <stop offset="0.52" stop-color="#c0a27a"/>
+      <stop offset="1" stop-color="#4a3a2c"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#2f251f"/>
+      <stop offset="0.5" stop-color="#76553a"/>
+      <stop offset="1" stop-color="#231c18"/>
+    </linearGradient>
+    <radialGradient id="windowGlow" cx="50%" cy="32%" r="52%">
+      <stop offset="0" stop-color="#e5edf0" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#8398a0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="7"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.16"/>
+      </feComponentTransfer>
+      <feBlend mode="multiply" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="960" height="720" fill="#2c2520"/>
+  <path d="M0 0h960v474H0z" fill="url(#wall)"/>
+  <path d="M0 470h960v250H0z" fill="url(#floor)"/>
+  <path d="M64 62h172v304H64z" fill="#29313a"/>
+  <path d="M724 62h172v304H724z" fill="#29313a"/>
+  <path d="M92 90h116v248H92zM752 90h116v248H752z" fill="#b9d3d8" opacity="0.55"/>
+  <path d="M150 88v252M810 88v252M92 214h116M752 214h116" stroke="#273039" stroke-width="10" opacity="0.7"/>
+  <ellipse cx="150" cy="260" rx="260" ry="230" fill="url(#windowGlow)" opacity="0.7"/>
+  <ellipse cx="810" cy="260" rx="260" ry="230" fill="url(#windowGlow)" opacity="0.58"/>
+  <path d="M377 62h206v302H377z" fill="#241d1a"/>
+  <path d="M402 88h156v236H402z" fill="#11100f"/>
+  <path d="M425 116h110v150H425z" fill="#5f4633"/>
+  <path d="M400 322h160" stroke="#191513" stroke-width="20"/>
+  <path d="M418 112h124v164" fill="none" stroke="#8e1e29" stroke-width="22" opacity="0.75"/>
+  <path d="M478 105c34 48 43 94 26 139-8 21-23 42-45 62 49-8 83-30 103-67 19-36 12-78-21-126z" fill="#231b17" opacity="0.64"/>
+  <path d="M0 542c138-64 284-94 440-90 157 4 330 35 520 92v176H0z" fill="#1d1715" opacity="0.38"/>
+  <path d="M44 658h872M108 606h746M192 558h574" stroke="#c09a61" stroke-width="3" opacity="0.28"/>
+  <path d="M644 416h280v48H626zM604 466h320v48H580zM564 516h360v48H532z" fill="#382a21"/>
+  <path d="M632 416h16v198h-16zM870 414h16v202h-16z" fill="#1a1512"/>
+  <rect width="960" height="720" fill="transparent" filter="url(#grain)"/>
+</svg>

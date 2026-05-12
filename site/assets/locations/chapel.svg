@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Empty estate chapel</title>
+  <desc id="desc">A candlelit chapel with pointed windows and pews.</desc>
+  <defs>
+    <linearGradient id="stone" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#5c665f"/>
+      <stop offset="0.55" stop-color="#b8b18e"/>
+      <stop offset="1" stop-color="#2b332f"/>
+    </linearGradient>
+    <radialGradient id="candle" cx="50%" cy="68%" r="42%">
+      <stop offset="0" stop-color="#ffe5a1" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffe5a1" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="3" seed="18"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.14"/>
+      </feComponentTransfer>
+      <feBlend mode="multiply" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="960" height="720" fill="#1c201f"/>
+  <path d="M0 0h960v720H0z" fill="url(#stone)"/>
+  <path d="M142 82c0-58 58-58 58 0v254h-58zM380 62c0-78 100-78 100 0v304H380zM704 82c0-58 58-58 58 0v254h-58z" fill="#1c2427" opacity="0.95"/>
+  <path d="M166 98v216M430 72v270M728 98v216" stroke="#9bb4b0" stroke-width="26" opacity="0.35"/>
+  <path d="M160 202h46M408 214h94M722 202h46" stroke="#1a1f21" stroke-width="9"/>
+  <path d="M0 454h960v266H0z" fill="#2a231d" opacity="0.86"/>
+  <path d="M78 500h290l-46 126H32zM592 500h290l46 126H638z" fill="#3a2a20"/>
+  <path d="M102 472h300M558 472h300M70 566h290M600 566h290" stroke="#9a7045" stroke-width="14" opacity="0.7"/>
+  <path d="M442 400h76v170h-76z" fill="#34251d"/>
+  <path d="M394 384h172v34H394z" fill="#6d4f32"/>
+  <path d="M480 240v146M426 302h108" stroke="#3b2a1e" stroke-width="22"/>
+  <circle cx="480" cy="506" r="272" fill="url(#candle)"/>
+  <g fill="#ffe0a0">
+    <path d="M372 370c16 28-8 38-8 38s-26-12 8-38z"/>
+    <path d="M590 370c16 28-8 38-8 38s-26-12 8-38z"/>
+    <path d="M480 348c16 28-8 38-8 38s-26-12 8-38z"/>
+  </g>
+  <rect width="960" height="720" fill="transparent" filter="url(#grain)"/>
+</svg>

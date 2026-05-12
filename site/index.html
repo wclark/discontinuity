@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Discontinuity</title>
+    <meta
+      name="description"
+      content="A static prototype for Discontinuity, a graphical turn-based text adventure told through many viewpoints of one day."
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">A Clockwork Social Mystery</p>
+          <h1>Discontinuity</h1>
+        </div>
+        <div class="top-actions">
+          <button class="ghost-button" id="save-button" type="button">Save</button>
+          <button class="ghost-button" id="reset-button" type="button">Reset</button>
+        </div>
+      </header>
+
+      <main id="app" aria-live="polite"></main>
+    </div>
+
+    <script src="scripts/data.js" defer></script>
+    <script src="scripts/engine.js" defer></script>
+    <script src="scripts/app.js" defer></script>
+  </body>
+</html>

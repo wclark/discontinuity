@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Empty paper archive</title>
+  <desc id="desc">A quiet archive with shelves, a desk, ledger, and blue envelope.</desc>
+  <defs>
+    <linearGradient id="paperWall" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#65513c"/>
+      <stop offset="0.54" stop-color="#c2aa7c"/>
+      <stop offset="1" stop-color="#33271d"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="23"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.15"/>
+      </feComponentTransfer>
+      <feBlend mode="multiply" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="960" height="720" fill="#211a15"/>
+  <rect width="960" height="520" fill="url(#paperWall)"/>
+  <rect y="520" width="960" height="200" fill="#2b2119"/>
+  <path d="M48 66h256v410H48zM656 66h256v410H656z" fill="#3c2d22"/>
+  <path d="M72 106h208M72 164h208M72 222h208M72 280h208M72 338h208M72 396h208M680 106h208M680 164h208M680 222h208M680 280h208M680 338h208M680 396h208" stroke="#9b7045" stroke-width="9"/>
+  <g fill="#d7c29b" opacity="0.88">
+    <rect x="84" y="118" width="42" height="36"/>
+    <rect x="134" y="112" width="58" height="42"/>
+    <rect x="208" y="118" width="54" height="36"/>
+    <rect x="700" y="116" width="60" height="38"/>
+    <rect x="770" y="112" width="34" height="42"/>
+    <rect x="822" y="118" width="44" height="36"/>
+    <rect x="92" y="292" width="72" height="38"/>
+    <rect x="180" y="286" width="76" height="44"/>
+    <rect x="704" y="292" width="86" height="38"/>
+    <rect x="806" y="286" width="56" height="44"/>
+  </g>
+  <path d="M292 456h376l74 192H218z" fill="#5d3f29"/>
+  <path d="M332 432h298v46H332z" fill="#7c5638"/>
+  <path d="M410 384h160l36 54H374z" fill="#2e241c"/>
+  <path d="M416 392h126l16 28H400z" fill="#8b2531"/>
+  <path d="M548 392l82 16-12 58-82-16z" fill="#2d6f9d"/>
+  <path d="M552 408l70 14M552 426l64 12" stroke="#cde3eb" stroke-width="4" opacity="0.75"/>
+  <path d="M0 526c164-30 302-34 414-12 156 30 338 20 546-30v236H0z" fill="#16110e" opacity="0.32"/>
+  <rect width="960" height="720" fill="transparent" filter="url(#grain)"/>
+</svg>

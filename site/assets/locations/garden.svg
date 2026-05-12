@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-labelledby="title desc">
+  <title id="title">Empty rain garden</title>
+  <desc id="desc">A rain-dark formal garden with paths, hedges, and a wall.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#8ea3a0"/>
+      <stop offset="0.58" stop-color="#c0b58f"/>
+      <stop offset="1" stop-color="#506851"/>
+    </linearGradient>
+    <radialGradient id="wet" cx="50%" cy="70%" r="48%">
+      <stop offset="0" stop-color="#d8cfaa" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#d8cfaa" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" seed="31"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.14"/>
+      </feComponentTransfer>
+      <feBlend mode="multiply" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="960" height="720" fill="url(#sky)"/>
+  <path d="M0 344h960v90H0z" fill="#67533f"/>
+  <path d="M0 374h960" stroke="#2f271f" stroke-width="10" opacity="0.45"/>
+  <path d="M0 428c146-42 282-48 408-18 166 39 350 28 552-34v344H0z" fill="#334b35"/>
+  <path d="M406 438h148l108 282H298z" fill="#c7b891"/>
+  <path d="M0 550c120-82 246-116 378-102L302 720H0zM960 544c-124-76-254-108-390-96l82 272h308z" fill="#223b2b"/>
+  <path d="M90 420h210v72H90zM660 420h210v72H660z" fill="#4f6d46"/>
+  <path d="M128 384c-20-88 24-154 76-224 44 74 90 138 72 224zM720 390c-26-102 34-174 92-252 52 82 92 154 70 252z" fill="#2f4a35"/>
+  <path d="M186 210v200M808 188v218" stroke="#1e2f24" stroke-width="15"/>
+  <circle cx="480" cy="514" r="240" fill="url(#wet)"/>
+  <g stroke="#dce5e0" stroke-width="3" opacity="0.58">
+    <path d="M126 40l-32 178M228 18l-42 236M356 26l-34 202M512 12l-42 248M664 30l-36 218M808 18l-46 264M918 58l-30 190"/>
+  </g>
+  <rect width="960" height="720" fill="transparent" filter="url(#grain)"/>
+</svg>
