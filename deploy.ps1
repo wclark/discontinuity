@@ -15,8 +15,16 @@ if (-not (Test-Path $SitePath)) {
   throw "Site path was not found at $SitePath"
 }
 
+function Assert-AwsSuccess {
+  param([string]$Step)
+
+  if ($LASTEXITCODE -ne 0) {
+    throw "$Step failed with exit code $LASTEXITCODE."
+  }
+}
+
 & $Aws s3 sync $SitePath "s3://$Bucket" `
   --delete `
   --profile $Profile `
   --cache-control "public, max-age=300"
-
+Assert-AwsSuccess "Syncing site to s3://$Bucket"
