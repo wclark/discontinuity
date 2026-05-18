@@ -125,7 +125,7 @@ The deployment script mirrors the existing static-site S3 process:
 .\deploy.ps1 -Profile georgist-login
 ```
 
-It syncs only the `site/` folder to `s3://discontinuity-website`, the S3 website origin currently serving `discontinuity.org`, with a short cache time and deletes removed files. It also invalidates CloudFront distribution `E3V4IEGTIQS7EP`.
+It syncs only the `site/` folder to `s3://discontinuity.org`, the S3 website origin serving `discontinuity.org`, with a short cache time and deletes removed files. It also invalidates CloudFront distribution `E3V4IEGTIQS7EP`.
 
 If the AWS SSO session has expired, refresh the existing profile first:
 

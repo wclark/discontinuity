@@ -1,6 +1,7 @@
 param(
   [string]$Profile = "georgist-login",
-  [string]$Bucket = "discontinuity-website",
+  [string]$Bucket = "discontinuity.org",
+  [string]$Region = "us-west-1",
   [string]$DistributionId = "E3V4IEGTIQS7EP"
 )
 
@@ -27,6 +28,7 @@ function Assert-AwsSuccess {
 & $Aws s3 sync $SitePath "s3://$Bucket" `
   --delete `
   --profile $Profile `
+  --region $Region `
   --cache-control "public, max-age=300"
 Assert-AwsSuccess "Syncing site to s3://$Bucket"
 
