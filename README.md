@@ -37,8 +37,8 @@ The prototype is deliberately plain HTML/CSS/JavaScript:
 - `site/index.html` loads the app shell.
 - `site/styles.css` handles the responsive illustrated dashboard UI.
 - `site/scripts/data.js` defines the world and action templates.
-- `site/scripts/engine.js` runs turns, validates actions, scores actions, applies effects, saves state, and builds the render model.
-- `site/scripts/app.js` renders the UI and wires buttons to engine actions.
+- `site/scripts/engine.js` runs turns, validates actions, scores goals and actions, applies effects, saves state, and builds the render model.
+- `site/scripts/app.js` renders the play/debug workbench and wires buttons to engine actions.
 - `site/assets/locations/*.svg` contains empty atmospheric location images.
 
 The world model is data-driven around:
@@ -49,10 +49,11 @@ The world model is data-driven around:
 - items
 - facts
 - relationships
+- goals
 - actions
 - events
 
-Preconditions decide whether an action can happen. Scoring decides whether a character wants to do it. NPCs choose from the same ranked candidate list as the player sees, plus generated movement and waiting actions.
+Preconditions decide whether an action can happen. Goals decide what a character is trying to accomplish. Scoring decides which valid action is most attractive right now. NPCs choose from the same ranked candidate list as the player sees, plus generated movement and waiting actions.
 
 ## Adding Content
 
@@ -82,6 +83,18 @@ Add items in `DATA.items` with:
 - `startLocation` or `startOwner`
 - `description`
 
+Add goals in `DATA.goals`. Important fields:
+
+- `id`
+- `label`
+- `actorIds`
+- `baseScore`
+- `activeThreshold`
+- weighted `variables`, each with a `condition` and `weight`
+- ordered `instructions`, such as `goTo` or `action`
+- optional per-instruction `satisfied` conditions
+- a `completion` condition
+
 Add actions in `DATA.actions`. Important fields:
 
 - `id`
@@ -103,9 +116,18 @@ Add actions in `DATA.actions`. Important fields:
 
 Every turn, the engine gathers a list of valid candidate actions for each character. Validity is strict: a character cannot give away an object they do not have, accuse someone who is not present when presence is required, or perform an action outside its time range.
 
+Goals are evaluated before action scoring. A goal is a small weighted equation:
+
+```js
+score = baseScore + sum(activeVariable ? weight : missing || 0)
+```
+
+When a goal reaches its `activeThreshold`, its first unsatisfied instruction becomes current. A `goTo` instruction boosts generated movement along the shortest path to the destination. An `action` instruction boosts that specific action if it is valid. If another social action scores higher, the goal is interrupted for that turn rather than forcibly executed. When the instruction's `satisfied` condition becomes true, the goal advances to the next instruction or completes.
+
 Scoring is flexible. A score can include:
 
 - the action's `baseScore`
+- active goal pressure
 - data modifiers in `DATA.actions`
 - turn-window urgency
 - whether the target is present
@@ -134,7 +156,7 @@ Starting a new run as a character clears that character's previous manual adjust
 
 ## Decision Debugging
 
-During a run, the right sidebar includes an **Adjusted Default Path** panel for development. It ranks the currently valid actions for every character using the same scoring pass that NPC turns use. Each collapsed row shows the top choice, location, and final score. Expanding a row shows the stored manual adjustment amounts for that character and the full candidate list; `applied +/-N` appears when a stored adjustment changed that action's current score.
+During a run, the UI is intentionally a compact behavior workbench. Each character row shows location, top goal, top action, and final action score. Expanding a character shows ranked goals with their weighted variables and instruction status, stored manual adjustment amounts, and the full ranked action list. `goal +N` shows goal pressure on an action; `applied +/-N` shows prior manual adjustment pressure.
 
 ## Deploy
 

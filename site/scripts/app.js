@@ -67,27 +67,13 @@
 
   function renderRun(model) {
     return `
-      <section class="layout">
-        <aside>
-          <div class="location-frame">
-            <img src="${escapeHtml(model.location.image)}" alt="Empty ${escapeHtml(model.location.name)}">
-            <div class="location-caption">
-              <div class="time-location">
-                <span>${escapeHtml(model.time.label)}</span>
-                <span>${escapeHtml(model.player.name)}</span>
-              </div>
-              <h2 class="location-name">${escapeHtml(model.location.name)}</h2>
-              <p class="empty-note">${escapeHtml(model.location.crowd)}</p>
-              ${renderMap(model)}
-            </div>
-          </div>
-        </aside>
-
-        <section class="panel scene">
+      <section class="dev-layout">
+        <section class="panel scene play-panel">
           <div class="scene-heading">
             <p class="scene-kicker">${escapeHtml(model.player.role)} &middot; ${escapeHtml(model.player.motive)}</p>
             <h2>${escapeHtml(model.location.name)}, ${escapeHtml(model.time.label)}</h2>
           </div>
+          ${renderRunStatus(model)}
           <div class="scene-copy">
             <p>${escapeHtml(model.location.description)}</p>
             ${scenePopulation(model)}
@@ -110,22 +96,9 @@
           </section>
         </section>
 
-        <aside class="sidebar">
-          <section class="panel">
-            ${renderPeople(model)}
-            ${renderInventory(model)}
-            ${renderVisibleItems(model)}
-          </section>
-          <section class="panel">
-            ${renderCharacterState(model)}
-          </section>
-          <section class="panel">
-            ${renderTimeline(model.timeline)}
-          </section>
-          <section class="panel debug-panel">
-            ${renderDecisionDebug(model.decisionDebug)}
-          </section>
-        </aside>
+        <section class="panel debug-panel">
+          ${renderDecisionDebug(model.decisionDebug)}
+        </section>
       </section>
     `;
   }
@@ -146,6 +119,22 @@
       })
       .join("");
     return `<ul class="map-list" aria-label="Map">${nodes}</ul>`;
+  }
+
+  function renderRunStatus(model) {
+    const people = model.peoplePresent.map((person) => person.name).join(", ") || "none";
+    const inventory = model.inventory.map((item) => item.name).join(", ") || "nothing";
+    const visible = model.visibleItems.map((item) => item.name).join(", ") || "none";
+    const exits = (model.location.exits || []).map((id) => DATA.locations[id].name).join(", ") || "none";
+    return `
+      <div class="dev-status-grid">
+        <div class="stat-row"><strong>Player</strong>${escapeHtml(model.player.name)}</div>
+        <div class="stat-row"><strong>Present</strong>${escapeHtml(people)}</div>
+        <div class="stat-row"><strong>Carrying</strong>${escapeHtml(inventory)}</div>
+        <div class="stat-row"><strong>Visible</strong>${escapeHtml(visible)}</div>
+        <div class="stat-row wide"><strong>Exits</strong>${escapeHtml(exits)}</div>
+      </div>
+    `;
   }
 
   function renderEvents(messages) {
@@ -244,6 +233,59 @@
     return `<span class="debug-adjustment">applied ${value > 0 ? "+" : ""}${scoreText(value)}</span>`;
   }
 
+  function goalBoostHtml(value) {
+    if (Math.abs(value) < 0.05) return "";
+    return `<span class="debug-goal-boost">goal +${scoreText(value)}</span>`;
+  }
+
+  function renderGoals(goals) {
+    const rows = goals
+      .map((goal) => {
+        const current = goal.currentInstruction ? goal.currentInstruction.label : "complete";
+        const variables = goal.variables
+          .map(
+            (variable) => `
+              <li class="debug-variable ${variable.active ? "is-on" : "is-off"}">
+                <span>${escapeHtml(variable.label)}</span>
+                <span>${variable.active ? "+" : ""}${scoreText(variable.contribution)}</span>
+              </li>
+            `
+          )
+          .join("");
+        const instructions = goal.instructions
+          .map(
+            (step) => `
+              <li class="debug-step ${escapeHtml(step.status)}">
+                <span>${escapeHtml(step.label)}</span>
+                <span>${escapeHtml(step.status)}</span>
+              </li>
+            `
+          )
+          .join("");
+        return `
+          <details class="debug-goal ${escapeHtml(goal.status)}" ${goal.status === "active" ? "open" : ""}>
+            <summary>
+              <span class="debug-label">${escapeHtml(goal.label)}</span>
+              <span class="debug-status">${escapeHtml(goal.status)}</span>
+              <span class="debug-score">${scoreText(goal.score)}</span>
+            </summary>
+            <div class="debug-goal-body">
+              <div class="debug-adjustment-meta">threshold ${scoreText(goal.threshold)} &middot; next: ${escapeHtml(current)}</div>
+              <ul class="debug-variable-list">${variables}</ul>
+              <ol class="debug-step-list">${instructions}</ol>
+            </div>
+          </details>
+        `;
+      })
+      .join("");
+    return `
+      <div class="debug-subsection">
+        <h4 class="debug-subtitle">Goals</h4>
+        ${rows ? `<div class="debug-goal-list">${rows}</div>` : emptyNote("No goals defined for this character.")}
+      </div>
+    `;
+  }
+
   function renderManualAdjustments(adjustments) {
     const rows = adjustments
       .map(
@@ -280,6 +322,7 @@
                 <span class="debug-rank">${option.rank}</span>
                 <span class="debug-label">${escapeHtml(option.label)}</span>
                 <span class="debug-score">${scoreText(option.score)}</span>
+                ${goalBoostHtml(option.goalBoost)}
                 ${adjustmentHtml(option.adjustment)}
                 ${tagsHtml(option.tags)}
               </li>
@@ -294,9 +337,11 @@
                 ${entry.isPlayer ? '<small class="debug-current">player</small>' : ""}
               </span>
               <span class="debug-location">${escapeHtml(entry.location)}</span>
+              <span class="debug-pick">${entry.topGoal ? escapeHtml(entry.topGoal.label) : "No goal"}</span>
               <span class="debug-pick">${top ? escapeHtml(top.label) : "No valid action"}</span>
               <span class="debug-score">${top ? scoreText(top.score) : "--"}</span>
             </summary>
+            ${renderGoals(entry.goals)}
             ${renderManualAdjustments(entry.manualAdjustments)}
             <h4 class="debug-subtitle debug-options-title">Ranked Options</h4>
             <ol class="debug-option-list">${optionRows}</ol>
@@ -306,7 +351,7 @@
       .join("");
     return `
       <div class="dashboard-section">
-        <h3 class="section-title">Adjusted Default Path</h3>
+        <h3 class="section-title">Behavior Workbench</h3>
         <div class="debug-character-list">${rows}</div>
       </div>
     `;

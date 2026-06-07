@@ -264,6 +264,15 @@
     if (condition.type === "fact") {
       return run.facts[condition.key] === condition.value;
     }
+    if (condition.type === "timeAtLeast") {
+      return run.timeIndex >= timeIndexOf(condition.time);
+    }
+    if (condition.type === "timeAtMost") {
+      return run.timeIndex <= timeIndexOf(condition.time);
+    }
+    if (condition.type === "timeBetween") {
+      return run.timeIndex >= timeIndexOf(condition.start) && run.timeIndex <= timeIndexOf(condition.end);
+    }
     if (condition.type === "memory") {
       const personId = resolvePerson(condition.person, actorId, targetId);
       return hasMemory(run, personId, condition.id);
@@ -329,6 +338,96 @@
     return total;
   }
 
+  function goalDefinitionsFor(actorId) {
+    return (DATA.goals || []).filter((goal) => {
+      return !goal.actorIds || goal.actorIds.includes(actorId);
+    });
+  }
+
+  function stepSatisfied(step, run, actorId) {
+    if (step.satisfied) return conditionMet(step.satisfied, run, actorId, step.targetId || null);
+    if (step.type === "goTo") return getPersonLocation(run, actorId) === step.location;
+    return false;
+  }
+
+  function goalSteps(goal, run, actorId) {
+    let foundCurrent = false;
+    return (goal.instructions || []).map((step) => {
+      const satisfied = stepSatisfied(step, run, actorId);
+      const isCurrent = !satisfied && !foundCurrent;
+      if (isCurrent) foundCurrent = true;
+      return {
+        ...step,
+        status: satisfied ? "satisfied" : isCurrent ? "current" : "pending"
+      };
+    });
+  }
+
+  function scoredGoalsFor(run, save, actorId) {
+    return goalDefinitionsFor(actorId)
+      .map((goal) => {
+        const variables = (goal.variables || []).map((variable) => {
+          const active = conditionMet(variable.condition, run, actorId, goal.targetId || null);
+          const contribution = active ? variable.weight || 0 : variable.missing || 0;
+          return {
+            label: variable.label || "condition",
+            active,
+            weight: variable.weight || 0,
+            contribution
+          };
+        });
+        const score = (goal.baseScore || 0) + variables.reduce((total, variable) => total + variable.contribution, 0);
+        const instructions = goalSteps(goal, run, actorId);
+        const currentInstruction = instructions.find((step) => step.status === "current") || null;
+        const satisfied = goal.completion
+          ? conditionMet(goal.completion, run, actorId, goal.targetId || null)
+          : !currentInstruction;
+        const threshold = goal.activeThreshold || 1;
+        const status = satisfied ? "satisfied" : score >= threshold && currentInstruction ? "active" : "dormant";
+        return {
+          id: goal.id,
+          label: goal.label,
+          score,
+          threshold,
+          status,
+          variables,
+          instructions,
+          currentInstruction
+        };
+      })
+      .sort((left, right) => {
+        const order = { active: 0, dormant: 1, satisfied: 2 };
+        return (
+          order[left.status] - order[right.status] ||
+          right.score - left.score ||
+          left.label.localeCompare(right.label)
+        );
+      });
+  }
+
+  function goalActionBoostFor(action, run, save, actorId) {
+    let total = 0;
+    scoredGoalsFor(run, save, actorId)
+      .filter((entry) => entry.status === "active")
+      .slice(0, 2)
+      .forEach((entry) => {
+        const step = entry.currentInstruction;
+        if (!step) return;
+        const intensity = Math.max(0, entry.score - entry.threshold);
+        const boost = Math.min(8, 3 + intensity * 0.65);
+        if (step.type === "action" && action.id === step.actionId) {
+          total += boost;
+        }
+        if (step.type === "goTo" && action.generated) {
+          const next = nextStepToward(run, actorId, step.location);
+          if (next && action.id === `move_${next}`) {
+            total += boost;
+          }
+        }
+      });
+    return total;
+  }
+
   function contextualScoreFor(action, run, actorId) {
     if (action.generated) return 0;
 
@@ -387,6 +486,7 @@
 
   function scoreAction(action, run, save, actorId, options = {}) {
     const includeFudges = options.includeFudges !== false;
+    const includeGoals = options.includeGoals !== false;
     let score = action.baseScore || 0;
     const targetId = action.targetId || null;
     (action.modifiers || []).forEach((modifier) => {
@@ -395,6 +495,7 @@
       }
     });
     score += contextualScoreFor(action, run, actorId);
+    if (includeGoals) score += goalActionBoostFor(action, run, save, actorId);
     if (includeFudges) score += behaviorFudgeFor(save, run, actorId, action);
     return score;
   }
@@ -831,15 +932,19 @@
           label: entry.action.label,
           score: entry.score,
           adjustment: entry.score - baselineScore,
+          goalBoost: goalActionBoostFor(entry.action, run, save, actorId),
           tags: entry.action.tags || []
         };
       });
+      const goals = scoredGoalsFor(run, save, actorId);
       return {
         characterId: actorId,
         name: DATA.characters[actorId].name,
         role: DATA.characters[actorId].role,
         isPlayer: actorId === run.playerId,
         location: getLocation(locationId).name,
+        topGoal: goals[0] || null,
+        goals,
         manualAdjustments: manualAdjustmentsFor(save, run, actorId),
         options
       };

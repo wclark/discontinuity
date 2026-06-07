@@ -198,6 +198,149 @@
         description: "A brass key worn smooth around the bow."
       }
     },
+    goals: [
+      {
+        id: "clara_hear_about_envelope",
+        label: "Learn why the envelope matters",
+        actorIds: ["clara"],
+        baseScore: 0,
+        activeThreshold: 3,
+        variables: [
+          { label: "morning kitchen position", weight: 2, condition: { type: "personAt", person: "actor", location: "kitchen" } },
+          { label: "before memorial begins", weight: 2, condition: { type: "timeAtMost", time: "0845" } },
+          { label: "not yet informed", weight: 2, condition: { type: "not", condition: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" } } }
+        ],
+        instructions: [
+          {
+            type: "action",
+            actionId: "clara_listen_pantry",
+            label: "Listen at the pantry door",
+            satisfied: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" }
+          }
+        ],
+        completion: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" }
+      },
+      {
+        id: "clara_get_envelope_first",
+        label: "Reach the Archive before Vale",
+        actorIds: ["clara"],
+        baseScore: 0,
+        activeThreshold: 7,
+        variables: [
+          { label: "heard Vale wants it", weight: 5, condition: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" } },
+          { label: "envelope still in Archive", weight: 4, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
+          { label: "Archive errand window", weight: 2, condition: { type: "timeBetween", start: "0845", end: "1015" } }
+        ],
+        instructions: [
+          { type: "goTo", location: "archive", label: "Travel to the Archive" },
+          {
+            type: "action",
+            actionId: "clara_hide_envelope",
+            label: "Take the blue envelope",
+            satisfied: { type: "itemOwner", item: "blueEnvelope", owner: "actor" }
+          }
+        ],
+        completion: { type: "itemOwner", item: "blueEnvelope", owner: "actor" }
+      },
+      {
+        id: "jonah_finish_printer_errand",
+        label: "Finish the printer's errand",
+        actorIds: ["jonah"],
+        baseScore: 0,
+        activeThreshold: 5,
+        variables: [
+          { label: "printer's early window", weight: 5, condition: { type: "timeBetween", start: "0800", end: "0900" } },
+          { label: "envelope still readable", weight: 3, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
+          { label: "address not copied yet", weight: 2, condition: { type: "not", condition: { type: "memory", person: "actor", id: "copied_envelope_address" } } }
+        ],
+        instructions: [
+          { type: "goTo", location: "archive", label: "Travel to the Archive" },
+          {
+            type: "action",
+            actionId: "jonah_copy_address",
+            label: "Copy the envelope address",
+            satisfied: { type: "memory", person: "actor", id: "copied_envelope_address" }
+          }
+        ],
+        completion: { type: "memory", person: "actor", id: "copied_envelope_address" }
+      },
+      {
+        id: "father_secure_envelope",
+        label: "Secure the blue envelope",
+        actorIds: ["fatherVale"],
+        baseScore: 0,
+        activeThreshold: 8,
+        variables: [
+          { label: "safekeeping window opened", weight: 5, condition: { type: "timeAtLeast", time: "0845" } },
+          { label: "envelope still on Archive desk", weight: 5, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
+          { label: "not already carrying it", weight: 1, condition: { type: "not", condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } } }
+        ],
+        instructions: [
+          { type: "goTo", location: "archive", label: "Travel to the Archive" },
+          {
+            type: "action",
+            actionId: "father_take_envelope",
+            label: "Remove the envelope for safekeeping",
+            satisfied: { type: "itemOwner", item: "blueEnvelope", owner: "actor" }
+          }
+        ],
+        completion: { type: "itemOwner", item: "blueEnvelope", owner: "actor" }
+      },
+      {
+        id: "father_return_envelope_to_chapel",
+        label: "Carry the envelope to the Chapel",
+        actorIds: ["fatherVale"],
+        baseScore: 0,
+        activeThreshold: 6,
+        variables: [
+          { label: "carrying envelope", weight: 8, condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } },
+          { label: "still before public accusation", weight: 2, condition: { type: "timeAtMost", time: "1045" } }
+        ],
+        instructions: [
+          {
+            type: "goTo",
+            location: "chapel",
+            label: "Travel to the Chapel with the envelope",
+            satisfied: {
+              type: "all",
+              conditions: [
+                { type: "personAt", person: "actor", location: "chapel" },
+                { type: "itemOwner", item: "blueEnvelope", owner: "actor" }
+              ]
+            }
+          }
+        ],
+        completion: {
+          type: "all",
+          conditions: [
+            { type: "personAt", person: "actor", location: "chapel" },
+            { type: "itemOwner", item: "blueEnvelope", owner: "actor" }
+          ]
+        }
+      },
+      {
+        id: "doctor_prevent_bad_accusation",
+        label: "Prevent a public disgrace",
+        actorIds: ["doctorMerrow"],
+        baseScore: 0,
+        activeThreshold: 7,
+        variables: [
+          { label: "final accusation window", weight: 5, condition: { type: "timeAtLeast", time: "1100" } },
+          { label: "Jonah has been named", weight: 6, condition: { type: "fact", key: "jonahAccused", value: true } },
+          { label: "Jonah is reachable", weight: 2, condition: { type: "personAt", person: "jonah", location: "hall" } }
+        ],
+        instructions: [
+          { type: "goTo", location: "hall", label: "Reach the Hall" },
+          {
+            type: "action",
+            actionId: "doctor_deflect_accusation",
+            label: "Deflect the accusation",
+            satisfied: { type: "fact", key: "accusationDeflected", value: true }
+          }
+        ],
+        completion: { type: "fact", key: "accusationDeflected", value: true }
+      }
+    ],
     defaultTimeline: [
       {
         id: "day_begins",
@@ -500,7 +643,10 @@
         locationId: "archive",
         baseScore: 8,
         tags: ["private", "suspicious"],
-        preconditions: [{ type: "not", condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } }],
+        preconditions: [
+          { type: "not", condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
+          { type: "not", condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } }
+        ],
         effects: [
           { type: "setFact", key: "envelopeKnownMissing", value: true },
           {
