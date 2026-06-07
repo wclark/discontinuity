@@ -75,6 +75,14 @@
         startLocation: "kitchen",
         unlocksAfter: "start",
         motive: "Keep her place, protect her brother, and learn why the blue envelope matters.",
+        preferences: {
+          careful: 0.45,
+          private: 0.25,
+          suspicious: 0.35,
+          risky: -0.15,
+          cruel: -0.25,
+          helpful: 0.15
+        },
         routine: {
           "0800": "hall",
           "0815": "hall",
@@ -100,6 +108,15 @@
         startLocation: "archive",
         unlocksAfter: "clara",
         motive: "Leave with his dignity intact and keep the printer's errand from becoming evidence.",
+        preferences: {
+          careful: 0.65,
+          private: 0.55,
+          helpful: 0.15,
+          risky: -0.45,
+          suspicious: -0.2,
+          public: -0.15,
+          cruel: -0.6
+        },
         routine: {
           "0800": "archive",
           "0815": "archive",
@@ -125,6 +142,15 @@
         startLocation: "chapel",
         unlocksAfter: "jonah",
         motive: "Keep a confession sealed while steering blame away from the parish.",
+        preferences: {
+          careful: 0.35,
+          private: 0.3,
+          public: 0.2,
+          suspicious: 0.2,
+          threatening: 0.1,
+          helpful: 0.1,
+          risky: -0.2
+        },
         routine: {
           "0800": "chapel",
           "0815": "chapel",
@@ -150,6 +176,15 @@
         startLocation: "garden",
         unlocksAfter: "fatherVale",
         motive: "Prevent a public disgrace without exposing the patient who confessed too much.",
+        preferences: {
+          helpful: 0.9,
+          kind: 0.75,
+          careful: 0.35,
+          private: 0.15,
+          risky: -0.15,
+          cruel: -0.9,
+          threatening: -0.75
+        },
         routine: {
           "0800": "garden",
           "0815": "kitchen",

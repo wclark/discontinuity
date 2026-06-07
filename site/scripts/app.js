@@ -238,6 +238,24 @@
     return `<span class="debug-goal-boost">goal +${scoreText(value)}</span>`;
   }
 
+  function defaultScoreHtml(value) {
+    return `<span class="debug-default-score">default ${value >= 0 ? "+" : ""}${scoreText(value)}</span>`;
+  }
+
+  function scorePartsHtml(parts) {
+    if (!parts || !parts.length) return "";
+    return `
+      <span class="debug-score-breakdown">
+        ${parts
+          .map(
+            (part) =>
+              `<span>${escapeHtml(part.label)} ${part.value >= 0 ? "+" : ""}${scoreText(part.value)}</span>`
+          )
+          .join("")}
+      </span>
+    `;
+  }
+
   function renderGoals(goals) {
     const rows = goals
       .map((goal) => {
@@ -268,7 +286,7 @@
               <li class="debug-choice-adjustment ${adjustment.active ? "is-on" : "is-off"}">
                 <span>${escapeHtml(adjustment.label)}</span>
                 <span>${escapeHtml(adjustment.actionId)}</span>
-                <span>+${scoreText(adjustment.amount)}</span>
+                <span>${adjustment.available ? "+" : "off "}${scoreText(adjustment.amount)}</span>
               </li>
             `
           )
@@ -332,10 +350,15 @@
             (option) => `
               <li class="debug-option ${option.rank === 1 ? "is-top" : ""}">
                 <span class="debug-rank">${option.rank}</span>
-                <span class="debug-label">${escapeHtml(option.label)}</span>
+                <span>
+                  <span class="debug-label">${escapeHtml(option.label)}</span>
+                  <span class="debug-action-id">${escapeHtml(option.id)}</span>
+                </span>
                 <span class="debug-score">${scoreText(option.score)}</span>
+                ${defaultScoreHtml(option.defaultScore)}
                 ${goalBoostHtml(option.goalBoost)}
                 ${adjustmentHtml(option.adjustment)}
+                ${scorePartsHtml(option.scoreParts)}
                 ${tagsHtml(option.tags)}
               </li>
             `

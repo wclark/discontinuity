@@ -74,6 +74,7 @@ Add characters in `DATA.characters` with:
 - `startLocation`
 - `unlocksAfter`
 - `motive`
+- optional `preferences` keyed by action tag, such as `careful`, `risky`, or `kind`
 - a `routine` mapping time slot IDs to mildly preferred locations
 
 Add items in `DATA.items` with:
@@ -123,11 +124,14 @@ Goals are evaluated before action scoring. A goal is a small weighted equation:
 score = baseScore + sum(activeVariable ? weight : missing || 0)
 ```
 
-When a goal reaches its `activeThreshold`, its conditional `adjustments` are allowed to fire. Each adjustment targets one concrete choice, such as `move_archive` or `father_take_envelope`, and adds its `amount` only if its local conditions are true. Those conditions can reference time, the actor's location, who is present, item possession or item location, facts, relationships, and prior choices. If the choice is not currently valid or not present in the location, the adjustment cannot do anything. If another social action still scores higher, the goal is interrupted for that turn rather than forcibly executed.
+When a goal reaches its `activeThreshold`, its conditional `adjustments` are allowed to fire. Each adjustment targets one concrete choice by action id, such as `move_archive`, `wait`, or `father_take_envelope`, and adds its `amount` only if its local conditions are true. Any currently available action can be a goal target. Conditions can reference time, the actor's location, who is present, item possession or item location, facts, relationships, and prior choices. If the choice is not currently valid or not present in the location, the adjustment cannot do anything. If another social action still scores higher, the goal is interrupted for that turn rather than forcibly executed.
 
 Scoring is flexible. A score can include:
 
 - the action's `baseScore`
+- generated movement routine/opportunity pressure
+- character tag preferences
+- wait/observe pressure
 - active goal pressure
 - data modifiers in `DATA.actions`
 - turn-window urgency
@@ -157,7 +161,7 @@ Starting a new run as a character clears that character's previous manual adjust
 
 ## Decision Debugging
 
-During a run, the UI is intentionally a compact behavior workbench. Each character row shows location, top goal, top action, and final action score. Expanding a character shows ranked goals with their weighted variables, local choice increments, instruction status, stored manual adjustment amounts, and the full ranked action list. `goal +N` shows goal pressure on an action; `applied +/-N` shows prior manual adjustment pressure.
+During a run, the UI is intentionally a compact behavior workbench. Each character row shows location, top goal, top action, and final action score. Expanding a character shows ranked goals with their weighted variables, local choice increments, instruction status, stored manual adjustment amounts, and the full ranked action list. Each action row includes its action id, `default +/-N` non-goal score, score-part chips, `goal +N` pressure, and `applied +/-N` prior manual adjustment pressure.
 
 ## Deploy
 

@@ -13,6 +13,20 @@
   ];
   const FUDGE_MARGIN = 3;
   const MIN_FUDGE = 1.5;
+  const DEFAULT_TAG_WEIGHTS = {
+    careful: 0.35,
+    private: 0.2,
+    public: 0.1,
+    helpful: 0.25,
+    kind: 0.25,
+    risky: -0.3,
+    suspicious: -0.2,
+    cruel: -0.7,
+    threatening: -0.55,
+    humiliating: -0.35,
+    confrontational: -0.25,
+    movement: 0
+  };
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -494,20 +508,64 @@
     return score;
   }
 
-  function scoreAction(action, run, save, actorId, options = {}) {
+  function tagPreferenceScoreFor(action, actorId) {
+    const character = getCharacter(actorId);
+    const preferences = character.preferences || {};
+    return (action.tags || []).reduce((score, tag) => {
+      return score + (DEFAULT_TAG_WEIGHTS[tag] || 0) + (preferences[tag] || 0);
+    }, 0);
+  }
+
+  function modifierScoreFor(action, run, actorId) {
+    const targetId = action.targetId || null;
+    return (action.modifiers || []).reduce((score, modifier) => {
+      if (conditionMet(modifier.condition, run, actorId, targetId)) {
+        return score + (modifier.add || 0);
+      }
+      return score;
+    }, 0);
+  }
+
+  function waitPreferenceScoreFor(action, run, actorId) {
+    if (action.id !== "wait") return 0;
+    const authoredCount = DATA.actions.filter((entry) => isActionValid(entry, run, actorId)).length;
+    const locationId = getPersonLocation(run, actorId);
+    const routineDestination = getCharacter(actorId).routine[getTime(run).id];
+    const peopleHere = peopleAt(run, locationId).length;
+    let score = authoredCount ? -0.35 : 0.65;
+    score += locationId === routineDestination ? 0.3 : -0.25;
+    score += peopleHere > 1 ? 0.2 : 0;
+    return score;
+  }
+
+  function scorePartsFor(action, run, save, actorId, options = {}) {
     const includeFudges = options.includeFudges !== false;
     const includeGoals = options.includeGoals !== false;
-    let score = action.baseScore || 0;
-    const targetId = action.targetId || null;
-    (action.modifiers || []).forEach((modifier) => {
-      if (conditionMet(modifier.condition, run, actorId, targetId)) {
-        score += modifier.add || 0;
-      }
-    });
-    score += contextualScoreFor(action, run, actorId);
-    if (includeGoals) score += goalActionBoostFor(action, run, save, actorId);
-    if (includeFudges) score += behaviorFudgeFor(save, run, actorId, action);
-    return score;
+    const parts = [];
+    if (action.scoreParts) {
+      action.scoreParts.forEach((part) => parts.push({ label: part.label, value: part.value || 0, kind: "default" }));
+    } else {
+      parts.push({ label: "base", value: action.baseScore || 0, kind: "default" });
+    }
+    parts.push({ label: "traits", value: tagPreferenceScoreFor(action, actorId), kind: "default" });
+    parts.push({ label: "modifiers", value: modifierScoreFor(action, run, actorId), kind: "default" });
+    parts.push({ label: "context", value: contextualScoreFor(action, run, actorId), kind: "default" });
+    parts.push({ label: "wait", value: waitPreferenceScoreFor(action, run, actorId), kind: "default" });
+    if (includeGoals) {
+      parts.push({ label: "goal", value: goalActionBoostFor(action, run, save, actorId), kind: "goal" });
+    }
+    if (includeFudges) {
+      parts.push({ label: "manual", value: behaviorFudgeFor(save, run, actorId, action), kind: "manual" });
+    }
+    return parts;
+  }
+
+  function sumScoreParts(parts) {
+    return parts.reduce((total, part) => total + (part.value || 0), 0);
+  }
+
+  function scoreAction(action, run, save, actorId, options = {}) {
+    return sumScoreParts(scorePartsFor(action, run, save, actorId, options));
   }
 
   function nextStepToward(run, actorId, destinationId) {
@@ -548,6 +606,11 @@
         label: `Go to ${destination.name}`,
         actorIds: [actorId],
         baseScore: baseScore + routineBonus + opportunityBonus,
+        scoreParts: [
+          { label: "move", value: baseScore },
+          { label: "routine", value: routineBonus },
+          { label: "opportunity", value: opportunityBonus }
+        ],
         tags: ["movement"],
         generated: true,
         effects: [{ type: "move", person: "actor", to: exitId }],
@@ -935,18 +998,30 @@
         ])
       );
       const options = scoredActionsFor(run, save, actorId).map((entry, index) => {
+        const scoreParts = scorePartsFor(entry.action, run, save, actorId);
+        const defaultScore = sumScoreParts(scoreParts.filter((part) => part.kind === "default"));
         const baselineScore = baseline.has(entry.action.id) ? baseline.get(entry.action.id) : entry.score;
         return {
           rank: index + 1,
           id: entry.action.id,
           label: entry.action.label,
           score: entry.score,
+          defaultScore,
           adjustment: entry.score - baselineScore,
           goalBoost: goalActionBoostFor(entry.action, run, save, actorId),
+          scoreParts: scoreParts.filter((part) => Math.abs(part.value || 0) >= 0.05),
           tags: entry.action.tags || []
         };
       });
-      const goals = scoredGoalsFor(run, save, actorId);
+      const availableActionIds = new Set(options.map((option) => option.id));
+      const goals = scoredGoalsFor(run, save, actorId).map((goal) => ({
+        ...goal,
+        adjustments: goal.adjustments.map((adjustment) => ({
+          ...adjustment,
+          available: availableActionIds.has(adjustment.actionId),
+          active: adjustment.active && availableActionIds.has(adjustment.actionId)
+        }))
+      }));
       return {
         characterId: actorId,
         name: DATA.characters[actorId].name,
