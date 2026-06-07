@@ -877,7 +877,7 @@
           conditionScore,
           manualScore,
           adjustment: entry.score - baselineScore,
-          scoreParts: scoreParts.filter((part) => Math.abs(part.value || 0) >= 0.05),
+          scoreParts: scoreParts.filter((part) => part.kind === "condition" && Math.abs(part.value || 0) >= 0.05),
           tags: entry.action.tags || []
         };
       });
