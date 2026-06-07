@@ -11,7 +11,9 @@
     "protectiveness",
     "guilt"
   ];
-  const BIAS_MARGIN = 6;
+  const FUDGE_MARGIN = 3;
+  const MAX_FUDGE = 9;
+  const MIN_FUDGE = 1.5;
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -23,6 +25,7 @@
       unlockedCharacters: ["clara"],
       completedRuns: [],
       authoredBiases: {},
+      behaviorFudges: {},
       discoveredTimeline: [],
       currentRun: null,
       lastEnding: null
@@ -33,11 +36,37 @@
     try {
       const raw = window.localStorage.getItem(DATA.storageKey);
       if (!raw) return createSave();
-      return { ...createSave(), ...JSON.parse(raw) };
+      return normalizeSave({ ...createSave(), ...JSON.parse(raw) });
     } catch (error) {
       console.warn("Could not load save.", error);
       return createSave();
     }
+  }
+
+  function normalizeSave(save) {
+    save.behaviorFudges = save.behaviorFudges || {};
+    save.authoredBiases = save.authoredBiases || {};
+
+    Object.entries(save.authoredBiases).forEach(([actorId, slots]) => {
+      if (!slots || save.behaviorFudges[actorId]) return;
+      save.behaviorFudges[actorId] = {};
+      Object.entries(slots).forEach(([slotId, bias]) => {
+        const action = DATA.actions.find((entry) => entry.id === bias.actionId);
+        if (!action) return;
+        save.behaviorFudges[actorId][slotId] = {
+          actionId: action.id,
+          actionLabel: action.label,
+          amount: bias.bonus || FUDGE_MARGIN,
+          startsAt: firstActionTime(action),
+          locationId: action.locationId || null,
+          targetId: action.targetId || null,
+          tags: action.tags || [],
+          lastSetAt: bias.lastSetAt || new Date().toISOString()
+        };
+      });
+    });
+
+    return save;
   }
 
   function persist(save) {
@@ -121,6 +150,36 @@
 
   function getTime(run) {
     return DATA.timeSlots[run.timeIndex] || DATA.timeSlots[DATA.timeSlots.length - 1];
+  }
+
+  function timeIndexOf(timeId) {
+    const index = DATA.timeSlots.findIndex((slot) => slot.id === timeId);
+    return index === -1 ? 0 : index;
+  }
+
+  function firstActionTime(action) {
+    if (action.timeWindow && action.timeWindow.start) return action.timeWindow.start;
+    if (action.timeIds && action.timeIds.length) return action.timeIds[0];
+    return DATA.timeSlots[0].id;
+  }
+
+  function actionWindow(action) {
+    if (action.timeWindow) {
+      return {
+        start: action.timeWindow.start || DATA.timeSlots[0].id,
+        end: action.timeWindow.end || DATA.timeSlots[DATA.timeSlots.length - 1].id
+      };
+    }
+    if (action.timeIds && action.timeIds.length) {
+      return {
+        start: action.timeIds[0],
+        end: action.timeIds[action.timeIds.length - 1]
+      };
+    }
+    return {
+      start: DATA.timeSlots[0].id,
+      end: DATA.timeSlots[DATA.timeSlots.length - 1].id
+    };
   }
 
   function getCharacter(id) {
@@ -220,7 +279,10 @@
   }
 
   function actionTimeMatches(action, timeId) {
-    return !action.timeIds || action.timeIds.includes(timeId);
+    if (action.timeIds && action.timeIds.includes(timeId)) return true;
+    if (!action.timeWindow) return !action.timeIds;
+    const index = timeIndexOf(timeId);
+    return index >= timeIndexOf(action.timeWindow.start) && index <= timeIndexOf(action.timeWindow.end);
   }
 
   function isActionValid(action, run, actorId) {
@@ -236,13 +298,92 @@
     );
   }
 
-  function authoredBiasFor(save, actorId, action) {
-    if (!action.slotId) return 0;
-    const bias = (((save.authoredBiases[actorId] || {})[action.slotId]) || {});
-    return bias.actionId === action.id ? bias.bonus || 0 : 0;
+  function activeFudgesFor(save, run, actorId) {
+    const currentIndex = run ? run.timeIndex : 0;
+    return Object.values((save.behaviorFudges || {})[actorId] || {}).filter((fudge) => {
+      return currentIndex >= timeIndexOf(fudge.startsAt);
+    });
   }
 
-  function scoreAction(action, run, save, actorId) {
+  function behaviorFudgeFor(save, run, actorId, action) {
+    let total = 0;
+    activeFudgesFor(save, run, actorId).forEach((fudge) => {
+      if (fudge.actionId === action.id) {
+        total += fudge.amount || 0;
+        return;
+      }
+      if (fudge.targetId && action.targetId === fudge.targetId) {
+        total += (fudge.amount || 0) * 0.22;
+      }
+      const overlap = (action.tags || []).filter((tag) => (fudge.tags || []).includes(tag)).length;
+      if (overlap) {
+        total += Math.min(1.5, overlap * 0.35);
+      }
+      if (fudge.locationId && action.locationId === fudge.locationId) {
+        total += 0.5;
+      }
+    });
+    return total;
+  }
+
+  function contextualScoreFor(action, run, actorId) {
+    if (action.generated) return 0;
+
+    let score = 0;
+    const targetId = action.targetId || null;
+    const locationId = getPersonLocation(run, actorId);
+    const peopleHere = peopleAt(run, locationId);
+    const otherPeopleCount = Math.max(0, peopleHere.length - 1);
+    const tags = action.tags || [];
+    const window = actionWindow(action);
+    const currentIndex = run.timeIndex;
+    const startIndex = timeIndexOf(window.start);
+    const endIndex = timeIndexOf(window.end);
+
+    if (currentIndex >= startIndex && currentIndex <= endIndex) {
+      score += Math.min(2.4, Math.max(0, currentIndex - startIndex) * 0.35);
+      if (endIndex - currentIndex <= 1) score += 1.2;
+    }
+
+    if (targetId && getPersonLocation(run, targetId) === locationId) {
+      score += 1.4;
+    }
+
+    if (tags.includes("private") && otherPeopleCount > 1) score -= 1.3;
+    if ((tags.includes("risky") || tags.includes("suspicious")) && otherPeopleCount > 0) {
+      score -= Math.min(2.2, otherPeopleCount * 0.55);
+    }
+    if (tags.includes("public") && tags.includes("humiliating")) {
+      score += Math.min(2.4, otherPeopleCount * 0.6);
+    }
+    if (tags.includes("public") && tags.includes("helpful")) {
+      score += Math.min(1.2, otherPeopleCount * 0.3);
+    }
+
+    if (targetId) {
+      const towardTarget = (metric) => relationship(run, actorId, targetId, metric);
+      if (tags.includes("kind") || tags.includes("helpful")) {
+        score += towardTarget("trust") * 0.45;
+        score += towardTarget("gratitude") * 0.75;
+        score += towardTarget("protectiveness") * 0.65;
+        score -= towardTarget("resentment") * 0.55;
+      }
+      if (tags.includes("cruel") || tags.includes("threatening") || tags.includes("confrontational")) {
+        score += towardTarget("resentment") * 0.7;
+        score += towardTarget("suspicion") * 0.45;
+        score -= towardTarget("gratitude") * 0.55;
+        score -= towardTarget("guilt") * 0.4;
+      }
+      if (tags.includes("suspicious")) {
+        score += towardTarget("suspicion") * 0.35;
+      }
+    }
+
+    return score;
+  }
+
+  function scoreAction(action, run, save, actorId, options = {}) {
+    const includeFudges = options.includeFudges !== false;
     let score = action.baseScore || 0;
     const targetId = action.targetId || null;
     (action.modifiers || []).forEach((modifier) => {
@@ -250,7 +391,8 @@
         score += modifier.add || 0;
       }
     });
-    score += authoredBiasFor(save, actorId, action);
+    score += contextualScoreFor(action, run, actorId);
+    if (includeFudges) score += behaviorFudgeFor(save, run, actorId, action);
     return score;
   }
 
@@ -284,13 +426,14 @@
 
     return (location.exits || []).map((exitId) => {
       const destination = getLocation(exitId);
-      const routineBonus = exitId === routineStep ? 8 : 0;
-      const baseScore = isPlayer ? -0.5 : -1;
+      const routineBonus = exitId === routineStep ? 2.2 : 0;
+      const opportunityBonus = movementOpportunityScore(run, save, actorId, exitId);
+      const baseScore = isPlayer ? -0.25 : -0.7;
       return {
         id: `move_${exitId}`,
         label: `Go to ${destination.name}`,
         actorIds: [actorId],
-        baseScore: baseScore + routineBonus,
+        baseScore: baseScore + routineBonus + opportunityBonus,
         tags: ["movement"],
         generated: true,
         effects: [{ type: "move", person: "actor", to: exitId }],
@@ -300,6 +443,49 @@
         }
       };
     });
+  }
+
+  function movementOpportunityScore(run, save, actorId, exitId) {
+    let score = 0;
+    const currentLocation = getPersonLocation(run, actorId);
+
+    DATA.actions.forEach((action) => {
+      if (action.generated || (action.actorIds && !action.actorIds.includes(actorId))) return;
+      if (!actionTimeMatches(action, getTime(run).id)) return;
+      if (action.once !== false && (run.actionHistory || {})[`${actorId}:${action.id}`]) return;
+      if (action.slotId && (run.slotHistory || {})[`${actorId}:${action.slotId}`]) return;
+      if (!action.locationId) return;
+
+      const step = nextStepToward(run, actorId, action.locationId);
+      if (step !== exitId && action.locationId !== exitId) return;
+
+      let actionPull = Math.max(0, (action.baseScore || 0) * 0.18);
+      const targetId = action.targetId || null;
+      if (targetId && getPersonLocation(run, targetId) === action.locationId) actionPull += 1.2;
+      if (action.preconditions || []) {
+        actionPull += (action.preconditions || []).some((condition) => {
+          return condition.type === "itemAt" && itemLocation(run, condition.item) === action.locationId;
+        })
+          ? 1.2
+          : 0;
+      }
+      if (currentLocation !== action.locationId) {
+        actionPull += behaviorFudgeFor(save, run, actorId, action) * 0.45;
+      }
+      score += Math.min(4, actionPull);
+    });
+
+    Object.keys(DATA.characters).forEach((otherId) => {
+      if (otherId === actorId) return;
+      const otherLocation = getPersonLocation(run, otherId);
+      if (otherLocation === currentLocation) return;
+      if (nextStepToward(run, actorId, otherLocation) !== exitId) return;
+      const tension = Math.abs(relationship(run, actorId, otherId, "resentment"));
+      const trust = relationship(run, actorId, otherId, "trust") + relationship(run, actorId, otherId, "gratitude");
+      score += Math.min(1.5, (tension + Math.max(0, trust)) * 0.2);
+    });
+
+    return Math.min(5.5, score);
   }
 
   function waitAction(actorId) {
@@ -330,11 +516,11 @@
     return authored.concat(movementActionsFor(run, save, actorId), waitAction(actorId));
   }
 
-  function scoredActionsFor(run, save, actorId) {
+  function scoredActionsFor(run, save, actorId, options = {}) {
     return validActionsFor(run, save, actorId)
       .map((action) => ({
         action,
-        score: scoreAction(action, run, save, actorId)
+        score: scoreAction(action, run, save, actorId, options)
       }))
       .sort((left, right) => right.score - left.score || left.action.label.localeCompare(right.action.label));
   }
@@ -444,19 +630,32 @@
     }
   }
 
-  function recordAuthoredBias(save, run, chosenAction, scoredActions) {
-    if (!chosenAction.slotId) return;
+  function recordBehaviorFudge(save, run, chosenAction, baselineScores) {
+    if (chosenAction.generated) return;
     const actorId = run.playerId;
-    const best = scoredActions[0];
-    const chosen = scoredActions.find((entry) => entry.action.id === chosenAction.id);
+    const key = chosenAction.slotId || chosenAction.id;
+    const best = baselineScores[0];
+    const chosen = baselineScores.find((entry) => entry.action.id === chosenAction.id);
     if (!chosen) return;
 
-    const bonus = Math.max(0, (best ? best.score : 0) - chosen.score + BIAS_MARGIN);
-    save.authoredBiases[actorId] = save.authoredBiases[actorId] || {};
-    save.authoredBiases[actorId][chosenAction.slotId] = {
+    save.behaviorFudges[actorId] = save.behaviorFudges[actorId] || {};
+    if (best && best.action.id === chosenAction.id) {
+      delete save.behaviorFudges[actorId][key];
+      return;
+    }
+
+    const amount = Math.min(
+      MAX_FUDGE,
+      Math.max(MIN_FUDGE, (best ? best.score : 0) - chosen.score + FUDGE_MARGIN)
+    );
+    save.behaviorFudges[actorId][key] = {
       actionId: chosenAction.id,
       actionLabel: chosenAction.label,
-      bonus,
+      amount,
+      startsAt: getTime(run).id,
+      locationId: chosenAction.locationId || getPersonLocation(run, actorId),
+      targetId: chosenAction.targetId || null,
+      tags: chosenAction.tags || [],
       lastSetAt: new Date().toISOString()
     };
   }
@@ -522,11 +721,12 @@
     if (!run || run.ended) return save;
 
     const scored = scoredActionsFor(run, save, run.playerId);
+    const baselineScores = scoredActionsFor(run, save, run.playerId, { includeFudges: false });
     const chosen = scored.find((entry) => entry.action.id === actionId);
     if (!chosen) return save;
 
     run.turnMessages = [];
-    recordAuthoredBias(save, run, chosen.action, scored);
+    recordBehaviorFudge(save, run, chosen.action, baselineScores);
     applyAction(chosen.action, run, save, run.playerId);
     runNpcTurns(run, save);
     advanceTime(save);
@@ -585,21 +785,6 @@
     return rows;
   }
 
-  function biasesFor(save) {
-    const rows = [];
-    Object.entries(save.authoredBiases).forEach(([characterId, slots]) => {
-      Object.entries(slots).forEach(([slotId, bias]) => {
-        rows.push({
-          character: DATA.characters[characterId].name,
-          slotId,
-          actionLabel: bias.actionLabel,
-          bonus: bias.bonus
-        });
-      });
-    });
-    return rows;
-  }
-
   function viewModel(save) {
     const run = save.currentRun;
     if (!run || run.ended) {
@@ -607,8 +792,7 @@
         mode: "start",
         save,
         characters: Object.values(DATA.characters),
-        timeline: timelineFor(save),
-        biases: biasesFor(save)
+        timeline: timelineFor(save)
       };
     }
 
@@ -625,10 +809,8 @@
       peoplePresent: peopleAt(run, locationId),
       inventory: inventoryFor(run, run.playerId),
       visibleItems: visibleItemsFor(run, locationId),
-      memories: run.memories[run.playerId],
       relationships: relationshipHighlights(run, run.playerId),
       timeline: timelineFor(save),
-      biases: biasesFor(save),
       actions: scoredActionsFor(run, save, run.playerId)
     };
   }

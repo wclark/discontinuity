@@ -47,7 +47,7 @@
         return `
           <button class="character-button" type="button" data-start-character="${character.id}" ${unlocked ? "" : "disabled"}>
             <span class="character-name">${escapeHtml(character.name)}</span>
-            <span class="character-role">${escapeHtml(character.role)} · ${escapeHtml(status)}</span>
+            <span class="character-role">${escapeHtml(character.role)} &middot; ${escapeHtml(status)}</span>
             <span class="character-role">${escapeHtml(character.motive)}</span>
           </button>
         `;
@@ -61,7 +61,6 @@
         ${ending}
         <div class="start-grid">${characterButtons}</div>
         ${renderTimeline(model.timeline)}
-        ${renderBiases(model.biases)}
       </section>
     `;
   }
@@ -86,7 +85,7 @@
 
         <section class="panel scene">
           <div class="scene-heading">
-            <p class="scene-kicker">${escapeHtml(model.player.role)} · ${escapeHtml(model.player.motive)}</p>
+            <p class="scene-kicker">${escapeHtml(model.player.role)} &middot; ${escapeHtml(model.player.motive)}</p>
             <h2>${escapeHtml(model.location.name)}, ${escapeHtml(model.time.label)}</h2>
           </div>
           <div class="scene-copy">
@@ -119,13 +118,9 @@
           </section>
           <section class="panel">
             ${renderCharacterState(model)}
-            ${renderMemories(model.memories)}
           </section>
           <section class="panel">
             ${renderTimeline(model.timeline)}
-          </section>
-          <section class="panel">
-            ${renderBiases(model.biases)}
           </section>
         </aside>
       </section>
@@ -237,24 +232,6 @@
     `;
   }
 
-  function renderMemories(memories) {
-    const rows = memories
-      .map(
-        (memory) => `
-          <li class="memory-item">
-            <strong>${escapeHtml(timeLabel(memory.timeId))}</strong> ${escapeHtml(memory.text)}
-          </li>
-        `
-      )
-      .join("");
-    return `
-      <div class="dashboard-section">
-        <h3 class="section-title">Memories and Obligations</h3>
-        ${rows ? `<ul class="memory-list">${rows}</ul>` : emptyNote("No personal memory has been made in this run.")}
-      </div>
-    `;
-  }
-
   function renderTimeline(timeline) {
     const rows = timeline
       .map(
@@ -272,25 +249,6 @@
       <div class="dashboard-section">
         <h3 class="section-title">Known Timeline</h3>
         <ul class="timeline-list">${rows}</ul>
-      </div>
-    `;
-  }
-
-  function renderBiases(biases) {
-    const rows = biases
-      .map(
-        (bias) => `
-          <li class="bias-item">
-            <strong>${escapeHtml(bias.character)}</strong> repeats "${escapeHtml(bias.actionLabel)}"
-            when ${escapeHtml(bias.slotId.replaceAll("_", " "))} holds.
-          </li>
-        `
-      )
-      .join("");
-    return `
-      <div class="dashboard-section">
-        <h3 class="section-title">Authored Choices</h3>
-        ${rows ? `<ul class="memory-list">${rows}</ul>` : emptyNote("No decision slot has been authored yet.")}
       </div>
     `;
   }

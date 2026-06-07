@@ -148,7 +148,6 @@ h1 {
 .chip-list,
 .action-list,
 .timeline-list,
-.memory-list,
 .inventory-list {
   display: grid;
   gap: 8px;
@@ -165,10 +164,8 @@ h1 {
 .chip,
 .tag,
 .inventory-item,
-.memory-item,
 .timeline-item,
-.stat-row,
-.bias-item {
+.stat-row {
   border: 1px solid var(--line);
   background: rgb(244 239 228 / 74%);
 }
@@ -341,10 +338,8 @@ h1 {
 }
 
 .inventory-item,
-.memory-item,
 .timeline-item,
-.stat-row,
-.bias-item {
+.stat-row {
   padding: 9px 10px;
   line-height: 1.38;
 }
@@ -361,9 +356,7 @@ h1 {
 }
 
 .timeline-text,
-.memory-item,
-.inventory-item,
-.bias-item {
+.inventory-item {
   color: #332c24;
   font-size: 0.91rem;
 }
