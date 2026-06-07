@@ -122,6 +122,9 @@
           <section class="panel">
             ${renderTimeline(model.timeline)}
           </section>
+          <section class="panel debug-panel">
+            ${renderDecisionDebug(model.decisionDebug)}
+          </section>
         </aside>
       </section>
     `;
@@ -228,6 +231,56 @@
           <div class="stat-row"><strong>Mood</strong>${escapeHtml(model.run.people[model.player.id].mood)}</div>
           ${rows || '<div class="stat-row"><strong>Social weather</strong>unsettled but unmarked</div>'}
         </div>
+      </div>
+    `;
+  }
+
+  function scoreText(value) {
+    return Number(value).toFixed(1);
+  }
+
+  function adjustmentHtml(value) {
+    if (Math.abs(value) < 0.05) return "";
+    return `<span class="debug-adjustment">adj ${value > 0 ? "+" : ""}${scoreText(value)}</span>`;
+  }
+
+  function renderDecisionDebug(debugRows) {
+    const rows = debugRows
+      .map((entry) => {
+        const top = entry.options[0];
+        const optionRows = entry.options
+          .map(
+            (option) => `
+              <li class="debug-option ${option.rank === 1 ? "is-top" : ""}">
+                <span class="debug-rank">${option.rank}</span>
+                <span class="debug-label">${escapeHtml(option.label)}</span>
+                <span class="debug-score">${scoreText(option.score)}</span>
+                ${adjustmentHtml(option.adjustment)}
+                ${tagsHtml(option.tags)}
+              </li>
+            `
+          )
+          .join("");
+        return `
+          <details class="debug-character" ${entry.isPlayer ? "open" : ""}>
+            <summary>
+              <span>
+                <strong>${escapeHtml(entry.name)}</strong>
+                ${entry.isPlayer ? '<small class="debug-current">player</small>' : ""}
+              </span>
+              <span class="debug-location">${escapeHtml(entry.location)}</span>
+              <span class="debug-pick">${top ? escapeHtml(top.label) : "No valid action"}</span>
+              <span class="debug-score">${top ? scoreText(top.score) : "--"}</span>
+            </summary>
+            <ol class="debug-option-list">${optionRows}</ol>
+          </details>
+        `;
+      })
+      .join("");
+    return `
+      <div class="dashboard-section">
+        <h3 class="section-title">Adjusted Default Path</h3>
+        <div class="debug-character-list">${rows}</div>
       </div>
     `;
   }

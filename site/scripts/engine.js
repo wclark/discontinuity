@@ -785,6 +785,37 @@
     return rows;
   }
 
+  function decisionDebugFor(run, save) {
+    return Object.keys(DATA.characters).map((actorId) => {
+      const locationId = getPersonLocation(run, actorId);
+      const baseline = new Map(
+        scoredActionsFor(run, save, actorId, { includeFudges: false }).map((entry) => [
+          entry.action.id,
+          entry.score
+        ])
+      );
+      const options = scoredActionsFor(run, save, actorId).map((entry, index) => {
+        const baselineScore = baseline.has(entry.action.id) ? baseline.get(entry.action.id) : entry.score;
+        return {
+          rank: index + 1,
+          id: entry.action.id,
+          label: entry.action.label,
+          score: entry.score,
+          adjustment: entry.score - baselineScore,
+          tags: entry.action.tags || []
+        };
+      });
+      return {
+        characterId: actorId,
+        name: DATA.characters[actorId].name,
+        role: DATA.characters[actorId].role,
+        isPlayer: actorId === run.playerId,
+        location: getLocation(locationId).name,
+        options
+      };
+    });
+  }
+
   function viewModel(save) {
     const run = save.currentRun;
     if (!run || run.ended) {
@@ -811,7 +842,8 @@
       visibleItems: visibleItemsFor(run, locationId),
       relationships: relationshipHighlights(run, run.playerId),
       timeline: timelineFor(save),
-      actions: scoredActionsFor(run, save, run.playerId)
+      actions: scoredActionsFor(run, save, run.playerId),
+      decisionDebug: decisionDebugFor(run, save)
     };
   }
 

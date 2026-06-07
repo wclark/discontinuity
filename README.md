@@ -132,6 +132,10 @@ On later runs, the adjustment applies only on or after `startsAt`. It boosts the
 
 Choosing the baseline top action again clears the stored adjustment for that decision context.
 
+## Decision Debugging
+
+During a run, the right sidebar includes an **Adjusted Default Path** panel for development. It ranks the currently valid actions for every character using the same scoring pass that NPC turns use. Each collapsed row shows the top choice, location, and final score. Expanding a row shows the full candidate list; `adj +/-N` appears when a saved score adjustment changed that action's score.
+
 ## Deploy
 
 The deployment script mirrors the existing static-site S3 process:
