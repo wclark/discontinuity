@@ -210,6 +210,18 @@
           { label: "before memorial begins", weight: 2, condition: { type: "timeAtMost", time: "0845" } },
           { label: "not yet informed", weight: 2, condition: { type: "not", condition: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" } } }
         ],
+        adjustments: [
+          {
+            label: "listen while in the kitchen",
+            actionId: "clara_listen_pantry",
+            amount: 5,
+            conditions: [
+              { type: "personAt", person: "actor", location: "kitchen" },
+              { type: "timeAtMost", time: "0845" },
+              { type: "not", condition: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" } }
+            ]
+          }
+        ],
         instructions: [
           {
             type: "action",
@@ -230,6 +242,41 @@
           { label: "heard Vale wants it", weight: 5, condition: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" } },
           { label: "envelope still in Archive", weight: 4, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
           { label: "Archive errand window", weight: 2, condition: { type: "timeBetween", start: "0845", end: "1015" } }
+        ],
+        adjustments: [
+          {
+            label: "leave Kitchen toward Archive",
+            actionId: "move_hall",
+            amount: 3,
+            conditions: [
+              { type: "personAt", person: "actor", location: "kitchen" },
+              { type: "memory", person: "actor", id: "heard_vale_needs_envelope" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" },
+              { type: "timeBetween", start: "0845", end: "1015" }
+            ]
+          },
+          {
+            label: "enter Archive from Hall",
+            actionId: "move_archive",
+            amount: 5,
+            conditions: [
+              { type: "personAt", person: "actor", location: "hall" },
+              { type: "memory", person: "actor", id: "heard_vale_needs_envelope" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" },
+              { type: "timeBetween", start: "0845", end: "1015" }
+            ]
+          },
+          {
+            label: "take envelope while alone enough to try",
+            actionId: "clara_hide_envelope",
+            amount: 6,
+            conditions: [
+              { type: "personAt", person: "actor", location: "archive" },
+              { type: "memory", person: "actor", id: "heard_vale_needs_envelope" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" },
+              { type: "timeBetween", start: "0845", end: "1015" }
+            ]
+          }
         ],
         instructions: [
           { type: "goTo", location: "archive", label: "Travel to the Archive" },
@@ -253,6 +300,30 @@
           { label: "envelope still readable", weight: 3, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
           { label: "address not copied yet", weight: 2, condition: { type: "not", condition: { type: "memory", person: "actor", id: "copied_envelope_address" } } }
         ],
+        adjustments: [
+          {
+            label: "return to Archive if pulled away early",
+            actionId: "move_archive",
+            amount: 4,
+            conditions: [
+              { type: "personAt", person: "actor", location: "hall" },
+              { type: "timeBetween", start: "0800", end: "0900" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" },
+              { type: "not", condition: { type: "memory", person: "actor", id: "copied_envelope_address" } }
+            ]
+          },
+          {
+            label: "copy address when envelope is present",
+            actionId: "jonah_copy_address",
+            amount: 5,
+            conditions: [
+              { type: "personAt", person: "actor", location: "archive" },
+              { type: "timeBetween", start: "0800", end: "0900" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" },
+              { type: "not", condition: { type: "memory", person: "actor", id: "copied_envelope_address" } }
+            ]
+          }
+        ],
         instructions: [
           { type: "goTo", location: "archive", label: "Travel to the Archive" },
           {
@@ -275,6 +346,51 @@
           { label: "envelope still on Archive desk", weight: 5, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
           { label: "not already carrying it", weight: 1, condition: { type: "not", condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } } }
         ],
+        adjustments: [
+          {
+            label: "leave Chapel toward Archive",
+            actionId: "move_hall",
+            amount: 4,
+            conditions: [
+              { type: "personAt", person: "actor", location: "chapel" },
+              { type: "timeAtLeast", time: "0845" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" },
+              { type: "not", condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } }
+            ]
+          },
+          {
+            label: "leave Garden toward Archive",
+            actionId: "move_hall",
+            amount: 4,
+            conditions: [
+              { type: "personAt", person: "actor", location: "garden" },
+              { type: "timeAtLeast", time: "0845" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" },
+              { type: "not", condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } }
+            ]
+          },
+          {
+            label: "enter Archive from Hall",
+            actionId: "move_archive",
+            amount: 5.5,
+            conditions: [
+              { type: "personAt", person: "actor", location: "hall" },
+              { type: "timeAtLeast", time: "0845" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" },
+              { type: "not", condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } }
+            ]
+          },
+          {
+            label: "take envelope at Archive",
+            actionId: "father_take_envelope",
+            amount: 6,
+            conditions: [
+              { type: "personAt", person: "actor", location: "archive" },
+              { type: "timeAtLeast", time: "0845" },
+              { type: "itemAt", item: "blueEnvelope", location: "archive" }
+            ]
+          }
+        ],
         instructions: [
           { type: "goTo", location: "archive", label: "Travel to the Archive" },
           {
@@ -295,6 +411,28 @@
         variables: [
           { label: "carrying envelope", weight: 8, condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } },
           { label: "still before public accusation", weight: 2, condition: { type: "timeAtMost", time: "1045" } }
+        ],
+        adjustments: [
+          {
+            label: "leave Archive with envelope",
+            actionId: "move_hall",
+            amount: 5,
+            conditions: [
+              { type: "personAt", person: "actor", location: "archive" },
+              { type: "itemOwner", item: "blueEnvelope", owner: "actor" },
+              { type: "timeAtMost", time: "1045" }
+            ]
+          },
+          {
+            label: "enter Chapel with envelope",
+            actionId: "move_chapel",
+            amount: 5.5,
+            conditions: [
+              { type: "personAt", person: "actor", location: "hall" },
+              { type: "itemOwner", item: "blueEnvelope", owner: "actor" },
+              { type: "timeAtMost", time: "1045" }
+            ]
+          }
         ],
         instructions: [
           {
@@ -328,6 +466,29 @@
           { label: "final accusation window", weight: 5, condition: { type: "timeAtLeast", time: "1100" } },
           { label: "Jonah has been named", weight: 6, condition: { type: "fact", key: "jonahAccused", value: true } },
           { label: "Jonah is reachable", weight: 2, condition: { type: "personAt", person: "jonah", location: "hall" } }
+        ],
+        adjustments: [
+          {
+            label: "reach the Hall before accusation settles",
+            actionId: "move_hall",
+            amount: 5,
+            conditions: [
+              { type: "timeAtLeast", time: "1100" },
+              { type: "fact", key: "jonahAccused", value: true },
+              { type: "personAt", person: "jonah", location: "hall" },
+              { type: "not", condition: { type: "personAt", person: "actor", location: "hall" } }
+            ]
+          },
+          {
+            label: "deflect when Jonah is present",
+            actionId: "doctor_deflect_accusation",
+            amount: 7,
+            conditions: [
+              { type: "personAt", person: "actor", location: "hall" },
+              { type: "personAt", person: "jonah", location: "hall" },
+              { type: "fact", key: "jonahAccused", value: true }
+            ]
+          }
         ],
         instructions: [
           { type: "goTo", location: "hall", label: "Reach the Hall" },

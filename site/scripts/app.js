@@ -262,6 +262,17 @@
             `
           )
           .join("");
+        const adjustments = goal.adjustments
+          .map(
+            (adjustment) => `
+              <li class="debug-choice-adjustment ${adjustment.active ? "is-on" : "is-off"}">
+                <span>${escapeHtml(adjustment.label)}</span>
+                <span>${escapeHtml(adjustment.actionId)}</span>
+                <span>+${scoreText(adjustment.amount)}</span>
+              </li>
+            `
+          )
+          .join("");
         return `
           <details class="debug-goal ${escapeHtml(goal.status)}" ${goal.status === "active" ? "open" : ""}>
             <summary>
@@ -272,6 +283,7 @@
             <div class="debug-goal-body">
               <div class="debug-adjustment-meta">threshold ${scoreText(goal.threshold)} &middot; next: ${escapeHtml(current)}</div>
               <ul class="debug-variable-list">${variables}</ul>
+              <ul class="debug-choice-list">${adjustments}</ul>
               <ol class="debug-step-list">${instructions}</ol>
             </div>
           </details>

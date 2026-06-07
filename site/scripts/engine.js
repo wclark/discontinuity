@@ -363,6 +363,23 @@
     });
   }
 
+  function goalAdjustments(goal, run, actorId) {
+    return (goal.adjustments || []).map((adjustment) => {
+      const conditions = (adjustment.conditions || []).map((condition) => {
+        return {
+          active: conditionMet(condition, run, actorId, adjustment.targetId || null)
+        };
+      });
+      return {
+        label: adjustment.label || adjustment.actionId,
+        actionId: adjustment.actionId,
+        amount: adjustment.amount || 0,
+        active: conditions.every((condition) => condition.active),
+        conditions
+      };
+    });
+  }
+
   function scoredGoalsFor(run, save, actorId) {
     return goalDefinitionsFor(actorId)
       .map((goal) => {
@@ -378,6 +395,7 @@
         });
         const score = (goal.baseScore || 0) + variables.reduce((total, variable) => total + variable.contribution, 0);
         const instructions = goalSteps(goal, run, actorId);
+        const adjustments = goalAdjustments(goal, run, actorId);
         const currentInstruction = instructions.find((step) => step.status === "current") || null;
         const satisfied = goal.completion
           ? conditionMet(goal.completion, run, actorId, goal.targetId || null)
@@ -392,6 +410,7 @@
           status,
           variables,
           instructions,
+          adjustments,
           currentInstruction
         };
       })
@@ -409,21 +428,12 @@
     let total = 0;
     scoredGoalsFor(run, save, actorId)
       .filter((entry) => entry.status === "active")
-      .slice(0, 2)
       .forEach((entry) => {
-        const step = entry.currentInstruction;
-        if (!step) return;
-        const intensity = Math.max(0, entry.score - entry.threshold);
-        const boost = Math.min(8, 3 + intensity * 0.65);
-        if (step.type === "action" && action.id === step.actionId) {
-          total += boost;
-        }
-        if (step.type === "goTo" && action.generated) {
-          const next = nextStepToward(run, actorId, step.location);
-          if (next && action.id === `move_${next}`) {
-            total += boost;
+        entry.adjustments.forEach((adjustment) => {
+          if (adjustment.active && adjustment.actionId === action.id) {
+            total += adjustment.amount;
           }
-        }
+        });
       });
     return total;
   }

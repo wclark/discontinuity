@@ -541,6 +541,7 @@ h1 {
 }
 
 .debug-variable-list,
+.debug-choice-list,
 .debug-step-list {
   display: grid;
   gap: 4px;
@@ -550,6 +551,7 @@ h1 {
 }
 
 .debug-variable,
+.debug-choice-adjustment,
 .debug-step {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 62px;
@@ -562,8 +564,18 @@ h1 {
 }
 
 .debug-variable.is-off,
+.debug-choice-adjustment.is-off,
 .debug-step.pending {
   color: var(--muted);
+}
+
+.debug-choice-adjustment {
+  grid-template-columns: minmax(0, 1fr) minmax(74px, 0.6fr) 48px;
+}
+
+.debug-choice-adjustment.is-on {
+  border-color: var(--brass);
+  background: #fff7e7;
 }
 
 .debug-step.current {
