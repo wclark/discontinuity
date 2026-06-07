@@ -1,6 +1,6 @@
 param(
   [string]$Profile = "georgist-login",
-  [string]$Bucket = "discontinuity-website",
+  [string]$Bucket = "discontinuity.org",
   [string]$Region = "us-west-1",
   [string]$DistributionId = "E3V4IEGTIQS7EP"
 )
