@@ -429,8 +429,7 @@ h1 {
 .debug-location,
 .debug-pick,
 .debug-adjustment,
-.debug-goal-boost,
-.debug-default-score,
+.debug-condition-score,
 .debug-action-id,
 .debug-status {
   color: var(--muted);
@@ -630,8 +629,7 @@ h1 {
 }
 
 .debug-adjustment,
-.debug-goal-boost,
-.debug-default-score,
+.debug-condition-score,
 .debug-score-breakdown {
   grid-column: 2 / -1;
   font-size: 0.72rem;

@@ -74,31 +74,7 @@
         color: "#792d31",
         startLocation: "kitchen",
         unlocksAfter: "start",
-        motive: "Keep her place, protect her brother, and learn why the blue envelope matters.",
-        preferences: {
-          careful: 0.45,
-          private: 0.25,
-          suspicious: 0.35,
-          risky: -0.15,
-          cruel: -0.25,
-          helpful: 0.15
-        },
-        routine: {
-          "0800": "hall",
-          "0815": "hall",
-          "0830": "hall",
-          "0845": "hall",
-          "0900": "hall",
-          "0915": "hall",
-          "0930": "chapel",
-          "0945": "archive",
-          "1000": "archive",
-          "1015": "hall",
-          "1030": "hall",
-          "1045": "kitchen",
-          "1100": "hall",
-          "1115": "hall"
-        }
+        motive: "Keep her place, protect her brother, and learn why the blue envelope matters."
       },
       jonah: {
         id: "jonah",
@@ -107,32 +83,7 @@
         color: "#2c5f86",
         startLocation: "archive",
         unlocksAfter: "clara",
-        motive: "Leave with his dignity intact and keep the printer's errand from becoming evidence.",
-        preferences: {
-          careful: 0.65,
-          private: 0.55,
-          helpful: 0.15,
-          risky: -0.45,
-          suspicious: -0.2,
-          public: -0.15,
-          cruel: -0.6
-        },
-        routine: {
-          "0800": "archive",
-          "0815": "archive",
-          "0830": "archive",
-          "0845": "hall",
-          "0900": "hall",
-          "0915": "hall",
-          "0930": "garden",
-          "0945": "chapel",
-          "1000": "hall",
-          "1015": "hall",
-          "1030": "hall",
-          "1045": "archive",
-          "1100": "hall",
-          "1115": "hall"
-        }
+        motive: "Leave with his dignity intact and keep the printer's errand from becoming evidence."
       },
       fatherVale: {
         id: "fatherVale",
@@ -141,32 +92,7 @@
         color: "#516851",
         startLocation: "chapel",
         unlocksAfter: "jonah",
-        motive: "Keep a confession sealed while steering blame away from the parish.",
-        preferences: {
-          careful: 0.35,
-          private: 0.3,
-          public: 0.2,
-          suspicious: 0.2,
-          threatening: 0.1,
-          helpful: 0.1,
-          risky: -0.2
-        },
-        routine: {
-          "0800": "chapel",
-          "0815": "chapel",
-          "0830": "hall",
-          "0845": "archive",
-          "0900": "archive",
-          "0915": "chapel",
-          "0930": "chapel",
-          "0945": "hall",
-          "1000": "chapel",
-          "1015": "hall",
-          "1030": "hall",
-          "1045": "archive",
-          "1100": "hall",
-          "1115": "hall"
-        }
+        motive: "Keep a confession sealed while steering blame away from the parish."
       },
       doctorMerrow: {
         id: "doctorMerrow",
@@ -175,32 +101,7 @@
         color: "#ad7b39",
         startLocation: "garden",
         unlocksAfter: "fatherVale",
-        motive: "Prevent a public disgrace without exposing the patient who confessed too much.",
-        preferences: {
-          helpful: 0.9,
-          kind: 0.75,
-          careful: 0.35,
-          private: 0.15,
-          risky: -0.15,
-          cruel: -0.9,
-          threatening: -0.75
-        },
-        routine: {
-          "0800": "garden",
-          "0815": "kitchen",
-          "0830": "garden",
-          "0845": "hall",
-          "0900": "garden",
-          "0915": "hall",
-          "0930": "garden",
-          "0945": "hall",
-          "1000": "garden",
-          "1015": "hall",
-          "1030": "hall",
-          "1045": "hall",
-          "1100": "hall",
-          "1115": "hall"
-        }
+        motive: "Prevent a public disgrace without exposing the patient who confessed too much."
       }
     },
     items: {
@@ -238,13 +139,6 @@
         id: "clara_hear_about_envelope",
         label: "Learn why the envelope matters",
         actorIds: ["clara"],
-        baseScore: 0,
-        activeThreshold: 3,
-        variables: [
-          { label: "morning kitchen position", weight: 2, condition: { type: "personAt", person: "actor", location: "kitchen" } },
-          { label: "before memorial begins", weight: 2, condition: { type: "timeAtMost", time: "0845" } },
-          { label: "not yet informed", weight: 2, condition: { type: "not", condition: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" } } }
-        ],
         adjustments: [
           {
             label: "listen while in the kitchen",
@@ -271,13 +165,6 @@
         id: "clara_get_envelope_first",
         label: "Reach the Archive before Vale",
         actorIds: ["clara"],
-        baseScore: 0,
-        activeThreshold: 7,
-        variables: [
-          { label: "heard Vale wants it", weight: 5, condition: { type: "memory", person: "actor", id: "heard_vale_needs_envelope" } },
-          { label: "envelope still in Archive", weight: 4, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
-          { label: "Archive errand window", weight: 2, condition: { type: "timeBetween", start: "0845", end: "1015" } }
-        ],
         adjustments: [
           {
             label: "leave Kitchen toward Archive",
@@ -328,13 +215,6 @@
         id: "jonah_finish_printer_errand",
         label: "Finish the printer's errand",
         actorIds: ["jonah"],
-        baseScore: 0,
-        activeThreshold: 5,
-        variables: [
-          { label: "printer's early window", weight: 5, condition: { type: "timeBetween", start: "0800", end: "0900" } },
-          { label: "envelope still readable", weight: 3, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
-          { label: "address not copied yet", weight: 2, condition: { type: "not", condition: { type: "memory", person: "actor", id: "copied_envelope_address" } } }
-        ],
         adjustments: [
           {
             label: "return to Archive if pulled away early",
@@ -374,13 +254,6 @@
         id: "father_secure_envelope",
         label: "Secure the blue envelope",
         actorIds: ["fatherVale"],
-        baseScore: 0,
-        activeThreshold: 8,
-        variables: [
-          { label: "safekeeping window opened", weight: 5, condition: { type: "timeAtLeast", time: "0845" } },
-          { label: "envelope still on Archive desk", weight: 5, condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
-          { label: "not already carrying it", weight: 1, condition: { type: "not", condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } } }
-        ],
         adjustments: [
           {
             label: "leave Chapel toward Archive",
@@ -441,12 +314,6 @@
         id: "father_return_envelope_to_chapel",
         label: "Carry the envelope to the Chapel",
         actorIds: ["fatherVale"],
-        baseScore: 0,
-        activeThreshold: 6,
-        variables: [
-          { label: "carrying envelope", weight: 8, condition: { type: "itemOwner", item: "blueEnvelope", owner: "actor" } },
-          { label: "still before public accusation", weight: 2, condition: { type: "timeAtMost", time: "1045" } }
-        ],
         adjustments: [
           {
             label: "leave Archive with envelope",
@@ -495,13 +362,6 @@
         id: "doctor_prevent_bad_accusation",
         label: "Prevent a public disgrace",
         actorIds: ["doctorMerrow"],
-        baseScore: 0,
-        activeThreshold: 7,
-        variables: [
-          { label: "final accusation window", weight: 5, condition: { type: "timeAtLeast", time: "1100" } },
-          { label: "Jonah has been named", weight: 6, condition: { type: "fact", key: "jonahAccused", value: true } },
-          { label: "Jonah is reachable", weight: 2, condition: { type: "personAt", person: "jonah", location: "hall" } }
-        ],
         adjustments: [
           {
             label: "reach the Hall before accusation settles",
@@ -640,7 +500,6 @@
         timeIds: ["0800", "0815"],
         timeWindow: { start: "0800", end: "0845" },
         locationId: "kitchen",
-        baseScore: 3,
         tags: ["private", "suspicious"],
         effects: [
           {
@@ -665,7 +524,6 @@
         timeIds: ["0845", "0900", "0945", "1000"],
         timeWindow: { start: "0845", end: "1015" },
         locationId: "archive",
-        baseScore: 2,
         tags: ["private", "risky", "suspicious"],
         preconditions: [{ type: "itemAt", item: "blueEnvelope", location: "archive" }],
         modifiers: [
@@ -699,7 +557,6 @@
         timeIds: ["0845", "0900", "0945", "1000"],
         timeWindow: { start: "0845", end: "1015" },
         locationId: "archive",
-        baseScore: 4,
         tags: ["careful"],
         preconditions: [{ type: "itemAt", item: "blueEnvelope", location: "archive" }],
         effects: [
@@ -724,7 +581,6 @@
         timeIds: ["0800", "0815", "0830"],
         timeWindow: { start: "0800", end: "0900" },
         locationId: "archive",
-        baseScore: 7,
         tags: ["private", "helpful"],
         preconditions: [{ type: "itemAt", item: "blueEnvelope", location: "archive" }],
         effects: [
@@ -750,7 +606,6 @@
         timeIds: ["0800", "0815", "0830"],
         timeWindow: { start: "0800", end: "0900" },
         locationId: "archive",
-        baseScore: 3,
         tags: ["private", "risky", "suspicious"],
         preconditions: [{ type: "itemAt", item: "blueEnvelope", location: "archive" }],
         modifiers: [
@@ -784,7 +639,6 @@
         timeIds: ["0800", "0815", "0830"],
         timeWindow: { start: "0800", end: "0900" },
         locationId: "archive",
-        baseScore: 2,
         tags: ["careful"],
         effects: [
           { type: "move", person: "actor", to: "hall" },
@@ -809,7 +663,6 @@
         timeIds: ["0900", "0915"],
         timeWindow: { start: "0845", end: "1015" },
         locationId: "archive",
-        baseScore: 7,
         tags: ["private", "suspicious"],
         preconditions: [{ type: "itemAt", item: "blueEnvelope", location: "archive" }],
         effects: [
@@ -837,7 +690,6 @@
         timeIds: ["0900", "0915", "1045"],
         timeWindow: { start: "0900", end: "1045" },
         locationId: "archive",
-        baseScore: 8,
         tags: ["private", "suspicious"],
         preconditions: [
           { type: "not", condition: { type: "itemAt", item: "blueEnvelope", location: "archive" } },
@@ -870,7 +722,6 @@
         timeIds: ["0915"],
         timeWindow: { start: "0900", end: "0945" },
         locationId: "hall",
-        baseScore: 4,
         tags: ["public", "cruel", "humiliating"],
         preconditions: [{ type: "sameLocation", person: "target" }],
         modifiers: [
@@ -926,7 +777,6 @@
         timeIds: ["0915"],
         timeWindow: { start: "0900", end: "0945" },
         locationId: "hall",
-        baseScore: 3,
         tags: ["private", "kind", "helpful"],
         preconditions: [{ type: "sameLocation", person: "target" }],
         modifiers: [
@@ -977,7 +827,6 @@
         timeIds: ["0915"],
         timeWindow: { start: "0900", end: "0945" },
         locationId: "hall",
-        baseScore: 2,
         tags: ["private", "threatening", "suspicious"],
         preconditions: [{ type: "sameLocation", person: "target" }],
         modifiers: [
@@ -1028,7 +877,6 @@
         timeIds: ["0915"],
         timeWindow: { start: "0900", end: "0945" },
         locationId: "hall",
-        baseScore: 5,
         tags: ["public", "careful"],
         preconditions: [{ type: "sameLocation", person: "target" }],
         effects: [
@@ -1063,7 +911,6 @@
         timeIds: ["1030", "1045"],
         timeWindow: { start: "1015", end: "1100" },
         locationId: "hall",
-        baseScore: 5,
         tags: ["public", "helpful", "risky"],
         preconditions: [{ type: "sameLocation", person: "target" }],
         modifiers: [
@@ -1111,7 +958,6 @@
         timeIds: ["1030", "1045"],
         timeWindow: { start: "1015", end: "1100" },
         locationId: "hall",
-        baseScore: 1,
         tags: ["private", "kind"],
         preconditions: [
           { type: "sameLocation", person: "target" },
@@ -1158,7 +1004,6 @@
         timeIds: ["1030", "1045"],
         timeWindow: { start: "1015", end: "1100" },
         locationId: "hall",
-        baseScore: 2,
         tags: ["public", "cruel", "suspicious"],
         preconditions: [{ type: "sameLocation", person: "target" }],
         modifiers: [
@@ -1202,7 +1047,6 @@
         timeIds: ["1030", "1045"],
         timeWindow: { start: "1015", end: "1100" },
         locationId: "hall",
-        baseScore: 2,
         tags: ["public", "kind", "helpful"],
         preconditions: [
           { type: "sameLocation", person: "target" },
@@ -1254,7 +1098,6 @@
         timeIds: ["1030", "1045"],
         timeWindow: { start: "1015", end: "1100" },
         locationId: "hall",
-        baseScore: 3,
         tags: ["public", "cruel"],
         preconditions: [
           { type: "sameLocation", person: "target" },
@@ -1305,7 +1148,6 @@
         timeIds: ["1030", "1045"],
         timeWindow: { start: "1015", end: "1100" },
         locationId: "hall",
-        baseScore: 1,
         tags: ["public", "risky", "confrontational"],
         preconditions: [{ type: "sameLocation", person: "target" }],
         modifiers: [
@@ -1349,7 +1191,6 @@
         timeIds: ["1015", "1030", "1045"],
         timeWindow: { start: "1000", end: "1100" },
         locationId: "hall",
-        baseScore: 3,
         tags: ["private", "helpful"],
         preconditions: [{ type: "sameLocation", person: "target" }],
         modifiers: [
@@ -1391,7 +1232,6 @@
         timeIds: ["1115"],
         timeWindow: { start: "1100", end: "1115" },
         locationId: "hall",
-        baseScore: 2,
         tags: ["public", "kind", "risky"],
         preconditions: [
           { type: "sameLocation", person: "target" },
@@ -1437,7 +1277,6 @@
         timeIds: ["1115"],
         timeWindow: { start: "1100", end: "1115" },
         locationId: "hall",
-        baseScore: 4,
         tags: ["public", "threatening", "suspicious"],
         preconditions: [
           { type: "sameLocation", person: "target" },

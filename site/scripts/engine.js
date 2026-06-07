@@ -13,20 +13,6 @@
   ];
   const FUDGE_MARGIN = 3;
   const MIN_FUDGE = 1.5;
-  const DEFAULT_TAG_WEIGHTS = {
-    careful: 0.35,
-    private: 0.2,
-    public: 0.1,
-    helpful: 0.25,
-    kind: 0.25,
-    risky: -0.3,
-    suspicious: -0.2,
-    cruel: -0.7,
-    threatening: -0.55,
-    humiliating: -0.35,
-    confrontational: -0.25,
-    movement: 0
-  };
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -80,6 +66,51 @@
     });
 
     return save;
+  }
+
+  function displayName(kind, id) {
+    if (!id) return "";
+    if (id === "actor") return "actor";
+    if (id === "target") return "target";
+    if (kind === "person") return (DATA.characters[id] && DATA.characters[id].name) || id;
+    if (kind === "location") return (DATA.locations[id] && DATA.locations[id].name) || id;
+    if (kind === "item") return (DATA.items[id] && DATA.items[id].name) || id;
+    return id;
+  }
+
+  function conditionLabel(condition) {
+    if (!condition) return "always";
+    if (condition.type === "not") return `not (${conditionLabel(condition.condition)})`;
+    if (condition.type === "all") return (condition.conditions || []).map(conditionLabel).join(" and ");
+    if (condition.type === "any") return (condition.conditions || []).map(conditionLabel).join(" or ");
+    if (condition.type === "sameLocation") {
+      return `${displayName("person", condition.person || "target")} present`;
+    }
+    if (condition.type === "personAt") {
+      return `${displayName("person", condition.person)} at ${displayName("location", condition.location)}`;
+    }
+    if (condition.type === "itemAt") {
+      return `${displayName("item", condition.item)} at ${displayName("location", condition.location)}`;
+    }
+    if (condition.type === "itemOwner") {
+      return `${displayName("item", condition.item)} held by ${displayName("person", condition.owner)}`;
+    }
+    if (condition.type === "fact") {
+      return `${condition.key} is ${String(condition.value)}`;
+    }
+    if (condition.type === "timeAtLeast") return `time at/after ${condition.time}`;
+    if (condition.type === "timeAtMost") return `time at/before ${condition.time}`;
+    if (condition.type === "timeBetween") return `time ${condition.start}-${condition.end}`;
+    if (condition.type === "memory") {
+      return `${displayName("person", condition.person)} has ${condition.id}`;
+    }
+    if (condition.type === "relationshipAtLeast") {
+      return `${condition.metric} ${displayName("person", condition.from)}->${displayName("person", condition.to)} >= ${condition.value}`;
+    }
+    if (condition.type === "relationshipAtMost") {
+      return `${condition.metric} ${displayName("person", condition.from)}->${displayName("person", condition.to)} <= ${condition.value}`;
+    }
+    return condition.type || "condition";
   }
 
   function persist(save) {
@@ -333,20 +364,13 @@
 
   function behaviorFudgeFor(save, run, actorId, action) {
     let total = 0;
+    const actorLocation = getPersonLocation(run, actorId);
     activeFudgesFor(save, run, actorId).forEach((fudge) => {
-      if (fudge.actionId === action.id) {
+      if (fudge.actionId !== action.id) return;
+      if (fudge.locationId && actorLocation !== fudge.locationId) return;
+      if (fudge.targetId && action.targetId !== fudge.targetId) return;
+      if (run.timeIndex >= timeIndexOf(fudge.startsAt)) {
         total += fudge.amount || 0;
-        return;
-      }
-      if (fudge.targetId && action.targetId === fudge.targetId) {
-        total += (fudge.amount || 0) * 0.22;
-      }
-      const overlap = (action.tags || []).filter((tag) => (fudge.tags || []).includes(tag)).length;
-      if (overlap) {
-        total += Math.min(1.5, overlap * 0.35);
-      }
-      if (fudge.locationId && action.locationId === fudge.locationId) {
-        total += 0.5;
       }
     });
     return total;
@@ -381,6 +405,7 @@
     return (goal.adjustments || []).map((adjustment) => {
       const conditions = (adjustment.conditions || []).map((condition) => {
         return {
+          label: conditionLabel(condition),
           active: conditionMet(condition, run, actorId, adjustment.targetId || null)
         };
       });
@@ -397,32 +422,21 @@
   function scoredGoalsFor(run, save, actorId) {
     return goalDefinitionsFor(actorId)
       .map((goal) => {
-        const variables = (goal.variables || []).map((variable) => {
-          const active = conditionMet(variable.condition, run, actorId, goal.targetId || null);
-          const contribution = active ? variable.weight || 0 : variable.missing || 0;
-          return {
-            label: variable.label || "condition",
-            active,
-            weight: variable.weight || 0,
-            contribution
-          };
-        });
-        const score = (goal.baseScore || 0) + variables.reduce((total, variable) => total + variable.contribution, 0);
         const instructions = goalSteps(goal, run, actorId);
         const adjustments = goalAdjustments(goal, run, actorId);
         const currentInstruction = instructions.find((step) => step.status === "current") || null;
         const satisfied = goal.completion
           ? conditionMet(goal.completion, run, actorId, goal.targetId || null)
           : !currentInstruction;
-        const threshold = goal.activeThreshold || 1;
-        const status = satisfied ? "satisfied" : score >= threshold && currentInstruction ? "active" : "dormant";
+        const score = adjustments.reduce((total, adjustment) => {
+          return total + (adjustment.active ? adjustment.amount || 0 : 0);
+        }, 0);
+        const status = satisfied ? "satisfied" : score > 0 ? "active" : "dormant";
         return {
           id: goal.id,
           label: goal.label,
           score,
-          threshold,
           status,
-          variables,
           instructions,
           adjustments,
           currentInstruction
@@ -438,121 +452,53 @@
       });
   }
 
-  function goalActionBoostFor(action, run, save, actorId) {
-    let total = 0;
-    scoredGoalsFor(run, save, actorId)
-      .filter((entry) => entry.status === "active")
-      .forEach((entry) => {
-        entry.adjustments.forEach((adjustment) => {
-          if (adjustment.active && adjustment.actionId === action.id) {
-            total += adjustment.amount;
-          }
+  function conditionBonusesFor(action) {
+    return action.conditionBonuses || action.modifiers || [];
+  }
+
+  function conditionBonusPartsFor(action, run, actorId) {
+    const targetId = action.targetId || null;
+    return conditionBonusesFor(action).map((bonus) => {
+      const conditions = bonus.conditions || (bonus.condition ? [bonus.condition] : []);
+      const active = conditions.every((condition) => conditionMet(condition, run, actorId, targetId));
+      return {
+        label: bonus.label || conditions.map(conditionLabel).join(" + ") || "condition",
+        value: active ? bonus.amount ?? bonus.add ?? 0 : 0,
+        kind: "condition",
+        active,
+        conditions: conditions.map((condition) => ({
+          label: conditionLabel(condition),
+          active: conditionMet(condition, run, actorId, targetId)
+        }))
+      };
+    });
+  }
+
+  function choiceBonusPartsFor(action, run, save, actorId) {
+    const parts = [];
+    goalDefinitionsFor(actorId).forEach((goal) => {
+      if (goal.completion && conditionMet(goal.completion, run, actorId, goal.targetId || null)) return;
+      goalAdjustments(goal, run, actorId).forEach((adjustment) => {
+        if (!adjustment.active || adjustment.actionId !== action.id) return;
+        parts.push({
+          label: adjustment.label || goal.label || adjustment.actionId,
+          value: adjustment.amount || 0,
+          kind: "condition",
+          active: true,
+          conditions: adjustment.conditions
         });
       });
-    return total;
-  }
-
-  function contextualScoreFor(action, run, actorId) {
-    if (action.generated) return 0;
-
-    let score = 0;
-    const targetId = action.targetId || null;
-    const locationId = getPersonLocation(run, actorId);
-    const peopleHere = peopleAt(run, locationId);
-    const otherPeopleCount = Math.max(0, peopleHere.length - 1);
-    const tags = action.tags || [];
-    const window = actionWindow(action);
-    const currentIndex = run.timeIndex;
-    const startIndex = timeIndexOf(window.start);
-    const endIndex = timeIndexOf(window.end);
-
-    if (currentIndex >= startIndex && currentIndex <= endIndex) {
-      score += Math.min(2.4, Math.max(0, currentIndex - startIndex) * 0.35);
-      if (endIndex - currentIndex <= 1) score += 1.2;
-    }
-
-    if (targetId && getPersonLocation(run, targetId) === locationId) {
-      score += 1.4;
-    }
-
-    if (tags.includes("private") && otherPeopleCount > 1) score -= 1.3;
-    if ((tags.includes("risky") || tags.includes("suspicious")) && otherPeopleCount > 0) {
-      score -= Math.min(2.2, otherPeopleCount * 0.55);
-    }
-    if (tags.includes("public") && tags.includes("humiliating")) {
-      score += Math.min(2.4, otherPeopleCount * 0.6);
-    }
-    if (tags.includes("public") && tags.includes("helpful")) {
-      score += Math.min(1.2, otherPeopleCount * 0.3);
-    }
-
-    if (targetId) {
-      const towardTarget = (metric) => relationship(run, actorId, targetId, metric);
-      if (tags.includes("kind") || tags.includes("helpful")) {
-        score += towardTarget("trust") * 0.45;
-        score += towardTarget("gratitude") * 0.75;
-        score += towardTarget("protectiveness") * 0.65;
-        score -= towardTarget("resentment") * 0.55;
-      }
-      if (tags.includes("cruel") || tags.includes("threatening") || tags.includes("confrontational")) {
-        score += towardTarget("resentment") * 0.7;
-        score += towardTarget("suspicion") * 0.45;
-        score -= towardTarget("gratitude") * 0.55;
-        score -= towardTarget("guilt") * 0.4;
-      }
-      if (tags.includes("suspicious")) {
-        score += towardTarget("suspicion") * 0.35;
-      }
-    }
-
-    return score;
-  }
-
-  function tagPreferenceScoreFor(action, actorId) {
-    const character = getCharacter(actorId);
-    const preferences = character.preferences || {};
-    return (action.tags || []).reduce((score, tag) => {
-      return score + (DEFAULT_TAG_WEIGHTS[tag] || 0) + (preferences[tag] || 0);
-    }, 0);
-  }
-
-  function modifierScoreFor(action, run, actorId) {
-    const targetId = action.targetId || null;
-    return (action.modifiers || []).reduce((score, modifier) => {
-      if (conditionMet(modifier.condition, run, actorId, targetId)) {
-        return score + (modifier.add || 0);
-      }
-      return score;
-    }, 0);
-  }
-
-  function waitPreferenceScoreFor(action, run, actorId) {
-    if (action.id !== "wait") return 0;
-    const authoredCount = DATA.actions.filter((entry) => isActionValid(entry, run, actorId)).length;
-    const locationId = getPersonLocation(run, actorId);
-    const routineDestination = getCharacter(actorId).routine[getTime(run).id];
-    const peopleHere = peopleAt(run, locationId).length;
-    let score = authoredCount ? -0.35 : 0.65;
-    score += locationId === routineDestination ? 0.3 : -0.25;
-    score += peopleHere > 1 ? 0.2 : 0;
-    return score;
+    });
+    return parts;
   }
 
   function scorePartsFor(action, run, save, actorId, options = {}) {
     const includeFudges = options.includeFudges !== false;
-    const includeGoals = options.includeGoals !== false;
+    const includeConditions = options.includeConditions !== false;
     const parts = [];
-    if (action.scoreParts) {
-      action.scoreParts.forEach((part) => parts.push({ label: part.label, value: part.value || 0, kind: "default" }));
-    } else {
-      parts.push({ label: "base", value: action.baseScore || 0, kind: "default" });
-    }
-    parts.push({ label: "traits", value: tagPreferenceScoreFor(action, actorId), kind: "default" });
-    parts.push({ label: "modifiers", value: modifierScoreFor(action, run, actorId), kind: "default" });
-    parts.push({ label: "context", value: contextualScoreFor(action, run, actorId), kind: "default" });
-    parts.push({ label: "wait", value: waitPreferenceScoreFor(action, run, actorId), kind: "default" });
-    if (includeGoals) {
-      parts.push({ label: "goal", value: goalActionBoostFor(action, run, save, actorId), kind: "goal" });
+    if (includeConditions) {
+      parts.push(...conditionBonusPartsFor(action, run, actorId));
+      parts.push(...choiceBonusPartsFor(action, run, save, actorId));
     }
     if (includeFudges) {
       parts.push({ label: "manual", value: behaviorFudgeFor(save, run, actorId, action), kind: "manual" });
@@ -568,49 +514,16 @@
     return sumScoreParts(scorePartsFor(action, run, save, actorId, options));
   }
 
-  function nextStepToward(run, actorId, destinationId) {
-    const start = getPersonLocation(run, actorId);
-    if (!start || start === destinationId) return null;
-    const queue = [{ id: start, path: [] }];
-    const seen = new Set([start]);
-
-    while (queue.length) {
-      const current = queue.shift();
-      const exits = DATA.locations[current.id].exits || [];
-      for (const exit of exits) {
-        if (seen.has(exit)) continue;
-        const path = current.path.concat(exit);
-        if (exit === destinationId) return path[0];
-        seen.add(exit);
-        queue.push({ id: exit, path });
-      }
-    }
-    return null;
-  }
-
   function movementActionsFor(run, save, actorId, options = {}) {
     const locationId = getPersonLocation(run, actorId);
     const location = getLocation(locationId);
-    const time = getTime(run);
-    const isPlayer = actorId === run.playerId;
-    const routineDestination = getCharacter(actorId).routine[time.id];
-    const routineStep = nextStepToward(run, actorId, routineDestination);
 
     return (location.exits || []).map((exitId) => {
       const destination = getLocation(exitId);
-      const routineBonus = exitId === routineStep ? 2.2 : 0;
-      const opportunityBonus = movementOpportunityScore(run, save, actorId, exitId, options);
-      const baseScore = isPlayer ? -0.25 : -0.7;
       return {
         id: `move_${exitId}`,
         label: `Go to ${destination.name}`,
         actorIds: [actorId],
-        baseScore: baseScore + routineBonus + opportunityBonus,
-        scoreParts: [
-          { label: "move", value: baseScore },
-          { label: "routine", value: routineBonus },
-          { label: "opportunity", value: opportunityBonus }
-        ],
         tags: ["movement"],
         generated: true,
         effects: [{ type: "move", person: "actor", to: exitId }],
@@ -622,56 +535,11 @@
     });
   }
 
-  function movementOpportunityScore(run, save, actorId, exitId, options = {}) {
-    let score = 0;
-    const currentLocation = getPersonLocation(run, actorId);
-    const includeFudges = options.includeFudges !== false;
-
-    DATA.actions.forEach((action) => {
-      if (action.generated || (action.actorIds && !action.actorIds.includes(actorId))) return;
-      if (!actionTimeMatches(action, getTime(run).id)) return;
-      if (action.once !== false && (run.actionHistory || {})[`${actorId}:${action.id}`]) return;
-      if (action.slotId && (run.slotHistory || {})[`${actorId}:${action.slotId}`]) return;
-      if (!action.locationId) return;
-
-      const step = nextStepToward(run, actorId, action.locationId);
-      if (step !== exitId && action.locationId !== exitId) return;
-
-      let actionPull = Math.max(0, (action.baseScore || 0) * 0.18);
-      const targetId = action.targetId || null;
-      if (targetId && getPersonLocation(run, targetId) === action.locationId) actionPull += 1.2;
-      if (action.preconditions || []) {
-        actionPull += (action.preconditions || []).some((condition) => {
-          return condition.type === "itemAt" && itemLocation(run, condition.item) === action.locationId;
-        })
-          ? 1.2
-          : 0;
-      }
-      if (currentLocation !== action.locationId) {
-        actionPull += includeFudges ? behaviorFudgeFor(save, run, actorId, action) * 0.45 : 0;
-      }
-      score += Math.min(4, actionPull);
-    });
-
-    Object.keys(DATA.characters).forEach((otherId) => {
-      if (otherId === actorId) return;
-      const otherLocation = getPersonLocation(run, otherId);
-      if (otherLocation === currentLocation) return;
-      if (nextStepToward(run, actorId, otherLocation) !== exitId) return;
-      const tension = Math.abs(relationship(run, actorId, otherId, "resentment"));
-      const trust = relationship(run, actorId, otherId, "trust") + relationship(run, actorId, otherId, "gratitude");
-      score += Math.min(1.5, (tension + Math.max(0, trust)) * 0.2);
-    });
-
-    return Math.min(5.5, score);
-  }
-
   function waitAction(actorId) {
     return {
       id: "wait",
       label: "Wait and watch",
       actorIds: [actorId],
-      baseScore: 0,
       tags: ["careful"],
       generated: true,
       effects: [
@@ -842,7 +710,7 @@
     const scored = scoredActionsFor(run, save, actorId);
     if (!scored.length) return null;
     const top = scored[0];
-    return top.score >= 0 ? top.action : null;
+    return top.score > 0 ? top.action : null;
   }
 
   function runNpcTurns(run, save) {
@@ -976,8 +844,7 @@
           startsAt: adjustment.startsAt,
           startsAtLabel: startsAt ? startsAt.label : adjustment.startsAt,
           location: location ? location.name : null,
-          active: run.timeIndex >= timeIndexOf(adjustment.startsAt),
-          tags: adjustment.tags || []
+          active: run.timeIndex >= timeIndexOf(adjustment.startsAt)
         };
       })
       .sort((left, right) => {
@@ -999,29 +866,38 @@
       );
       const options = scoredActionsFor(run, save, actorId).map((entry, index) => {
         const scoreParts = scorePartsFor(entry.action, run, save, actorId);
-        const defaultScore = sumScoreParts(scoreParts.filter((part) => part.kind === "default"));
+        const conditionScore = sumScoreParts(scoreParts.filter((part) => part.kind === "condition"));
+        const manualScore = sumScoreParts(scoreParts.filter((part) => part.kind === "manual"));
         const baselineScore = baseline.has(entry.action.id) ? baseline.get(entry.action.id) : entry.score;
         return {
           rank: index + 1,
           id: entry.action.id,
           label: entry.action.label,
           score: entry.score,
-          defaultScore,
+          conditionScore,
+          manualScore,
           adjustment: entry.score - baselineScore,
-          goalBoost: goalActionBoostFor(entry.action, run, save, actorId),
           scoreParts: scoreParts.filter((part) => Math.abs(part.value || 0) >= 0.05),
           tags: entry.action.tags || []
         };
       });
       const availableActionIds = new Set(options.map((option) => option.id));
-      const goals = scoredGoalsFor(run, save, actorId).map((goal) => ({
-        ...goal,
-        adjustments: goal.adjustments.map((adjustment) => ({
+      const goals = scoredGoalsFor(run, save, actorId).map((goal) => {
+        const adjustments = goal.adjustments.map((adjustment) => ({
           ...adjustment,
           available: availableActionIds.has(adjustment.actionId),
           active: adjustment.active && availableActionIds.has(adjustment.actionId)
-        }))
-      }));
+        }));
+        const score = adjustments.reduce((total, adjustment) => {
+          return total + (adjustment.active ? adjustment.amount || 0 : 0);
+        }, 0);
+        return {
+          ...goal,
+          score,
+          status: goal.status === "satisfied" ? "satisfied" : score > 0 ? "active" : "dormant",
+          adjustments
+        };
+      });
       return {
         characterId: actorId,
         name: DATA.characters[actorId].name,

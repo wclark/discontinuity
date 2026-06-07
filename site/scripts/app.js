@@ -230,16 +230,11 @@
 
   function adjustmentHtml(value) {
     if (Math.abs(value) < 0.05) return "";
-    return `<span class="debug-adjustment">applied ${value > 0 ? "+" : ""}${scoreText(value)}</span>`;
+    return `<span class="debug-adjustment">manual ${value > 0 ? "+" : ""}${scoreText(value)}</span>`;
   }
 
-  function goalBoostHtml(value) {
-    if (Math.abs(value) < 0.05) return "";
-    return `<span class="debug-goal-boost">goal +${scoreText(value)}</span>`;
-  }
-
-  function defaultScoreHtml(value) {
-    return `<span class="debug-default-score">default ${value >= 0 ? "+" : ""}${scoreText(value)}</span>`;
+  function conditionScoreHtml(value) {
+    return `<span class="debug-condition-score">conditions ${value >= 0 ? "+" : ""}${scoreText(value)}</span>`;
   }
 
   function scorePartsHtml(parts) {
@@ -260,16 +255,6 @@
     const rows = goals
       .map((goal) => {
         const current = goal.currentInstruction ? goal.currentInstruction.label : "complete";
-        const variables = goal.variables
-          .map(
-            (variable) => `
-              <li class="debug-variable ${variable.active ? "is-on" : "is-off"}">
-                <span>${escapeHtml(variable.label)}</span>
-                <span>${variable.active ? "+" : ""}${scoreText(variable.contribution)}</span>
-              </li>
-            `
-          )
-          .join("");
         const instructions = goal.instructions
           .map(
             (step) => `
@@ -287,6 +272,11 @@
                 <span>${escapeHtml(adjustment.label)}</span>
                 <span>${escapeHtml(adjustment.actionId)}</span>
                 <span>${adjustment.available ? "+" : "off "}${scoreText(adjustment.amount)}</span>
+                <span class="debug-adjustment-meta">
+                  ${adjustment.conditions
+                    .map((condition) => `${condition.active ? "on" : "off"}: ${escapeHtml(condition.label)}`)
+                    .join(" &middot; ")}
+                </span>
               </li>
             `
           )
@@ -299,8 +289,7 @@
               <span class="debug-score">${scoreText(goal.score)}</span>
             </summary>
             <div class="debug-goal-body">
-              <div class="debug-adjustment-meta">threshold ${scoreText(goal.threshold)} &middot; next: ${escapeHtml(current)}</div>
-              <ul class="debug-variable-list">${variables}</ul>
+              <div class="debug-adjustment-meta">next: ${escapeHtml(current)}</div>
               <ul class="debug-choice-list">${adjustments}</ul>
               <ol class="debug-step-list">${instructions}</ol>
             </div>
@@ -310,8 +299,8 @@
       .join("");
     return `
       <div class="debug-subsection">
-        <h4 class="debug-subtitle">Goals</h4>
-        ${rows ? `<div class="debug-goal-list">${rows}</div>` : emptyNote("No goals defined for this character.")}
+        <h4 class="debug-subtitle">Condition Sets</h4>
+        ${rows ? `<div class="debug-goal-list">${rows}</div>` : emptyNote("No condition sets defined for this character.")}
       </div>
     `;
   }
@@ -328,7 +317,6 @@
               ${adjustment.location ? `&middot; ${escapeHtml(adjustment.location)}` : ""}
               &middot; ${adjustment.active ? "active" : "pending"}
             </span>
-            ${tagsHtml(adjustment.tags)}
           </li>
         `
       )
@@ -355,11 +343,9 @@
                   <span class="debug-action-id">${escapeHtml(option.id)}</span>
                 </span>
                 <span class="debug-score">${scoreText(option.score)}</span>
-                ${defaultScoreHtml(option.defaultScore)}
-                ${goalBoostHtml(option.goalBoost)}
-                ${adjustmentHtml(option.adjustment)}
+                ${conditionScoreHtml(option.conditionScore)}
+                ${adjustmentHtml(option.manualScore)}
                 ${scorePartsHtml(option.scoreParts)}
-                ${tagsHtml(option.tags)}
               </li>
             `
           )
@@ -372,7 +358,7 @@
                 ${entry.isPlayer ? '<small class="debug-current">player</small>' : ""}
               </span>
               <span class="debug-location">${escapeHtml(entry.location)}</span>
-              <span class="debug-pick">${entry.topGoal ? escapeHtml(entry.topGoal.label) : "No goal"}</span>
+              <span class="debug-pick">${entry.topGoal ? escapeHtml(entry.topGoal.label) : "No condition set"}</span>
               <span class="debug-pick">${top ? escapeHtml(top.label) : "No valid action"}</span>
               <span class="debug-score">${top ? scoreText(top.score) : "--"}</span>
             </summary>

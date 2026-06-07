@@ -37,7 +37,7 @@ The prototype is deliberately plain HTML/CSS/JavaScript:
 - `site/index.html` loads the app shell.
 - `site/styles.css` handles the responsive illustrated dashboard UI.
 - `site/scripts/data.js` defines the world and action templates.
-- `site/scripts/engine.js` runs turns, validates actions, scores goals and actions, applies effects, saves state, and builds the render model.
+- `site/scripts/engine.js` runs turns, validates actions, scores condition increments and actions, applies effects, saves state, and builds the render model.
 - `site/scripts/app.js` renders the play/debug workbench and wires buttons to engine actions.
 - `site/assets/locations/*.svg` contains empty atmospheric location images.
 
@@ -49,11 +49,11 @@ The world model is data-driven around:
 - items
 - facts
 - relationships
-- goals
+- condition sets
 - actions
 - events
 
-Preconditions decide whether an action can happen. Goals decide what a character is trying to accomplish. Scoring decides which valid action is most attractive right now. NPCs choose from the same ranked candidate list as the player sees, plus generated movement and waiting actions.
+Preconditions decide whether an action can happen. Condition sets add points to concrete choices when their facts line up. Scoring decides which valid action is most attractive right now. NPCs choose from the same ranked candidate list as the player sees, plus generated movement and waiting actions.
 
 ## Adding Content
 
@@ -74,8 +74,6 @@ Add characters in `DATA.characters` with:
 - `startLocation`
 - `unlocksAfter`
 - `motive`
-- optional `preferences` keyed by action tag, such as `careful`, `risky`, or `kind`
-- a `routine` mapping time slot IDs to mildly preferred locations
 
 Add items in `DATA.items` with:
 
@@ -84,15 +82,13 @@ Add items in `DATA.items` with:
 - `startLocation` or `startOwner`
 - `description`
 
-Add goals in `DATA.goals`. Important fields:
+Add condition sets in `DATA.goals`. Important fields:
 
 - `id`
 - `label`
 - `actorIds`
-- `baseScore`
-- `activeThreshold`
-- weighted `variables`, each with a `condition` and `weight`
 - conditional `adjustments`, each aimed at one `actionId` with an `amount`
+- each adjustment's `conditions`, such as time, actor location, item location, item possession, people present, facts, and relationships
 - optional ordered `instructions` for human-readable progress/debugging
 - optional per-instruction `satisfied` conditions
 - a `completion` condition
@@ -107,10 +103,9 @@ Add actions in `DATA.actions`. Important fields:
 - `timeIds`
 - optional `timeWindow`, for actions that can survive small delays
 - `locationId`
-- `baseScore`
 - `tags`
 - `preconditions`
-- `modifiers`
+- optional `conditionBonuses` or legacy `modifiers`, each with conditions and an amount
 - `effects`
 - perspective text: `actor`, `target`, and `observer`
 
@@ -118,28 +113,13 @@ Add actions in `DATA.actions`. Important fields:
 
 Every turn, the engine gathers a list of valid candidate actions for each character. Validity is strict: a character cannot give away an object they do not have, accuse someone who is not present when presence is required, or perform an action outside its time range.
 
-Goals are evaluated before action scoring. A goal is a small weighted equation:
+Every candidate action starts at zero. Scores only move when a satisfied condition adds an explicit amount to that concrete action. Those increments can come from:
 
-```js
-score = baseScore + sum(activeVariable ? weight : missing || 0)
-```
+- a condition set adjustment in `DATA.goals`
+- a condition bonus directly on an action
+- a prior-run manual adjustment that starts on or after a specific turn
 
-When a goal reaches its `activeThreshold`, its conditional `adjustments` are allowed to fire. Each adjustment targets one concrete choice by action id, such as `move_archive`, `wait`, or `father_take_envelope`, and adds its `amount` only if its local conditions are true. Any currently available action can be a goal target. Conditions can reference time, the actor's location, who is present, item possession or item location, facts, relationships, and prior choices. If the choice is not currently valid or not present in the location, the adjustment cannot do anything. If another social action still scores higher, the goal is interrupted for that turn rather than forcibly executed.
-
-Scoring is flexible. A score can include:
-
-- the action's `baseScore`
-- generated movement routine/opportunity pressure
-- character tag preferences
-- wait/observe pressure
-- active goal pressure
-- data modifiers in `DATA.actions`
-- turn-window urgency
-- whether the target is present
-- crowd effects for public, private, risky, or humiliating actions
-- relationship pressure
-- movement pressure toward useful locations, people, or items
-- a prior-run score adjustment that starts on or after a specific turn
+Each condition set adjustment targets one concrete choice by action id, such as `move_archive`, `wait`, or `father_take_envelope`, and adds its `amount` only if its local conditions are true. Any currently available action can be a target. Conditions can reference time, the actor's location, who is present, item possession or item location, facts, relationships, and prior choices. If the choice is not currently valid or not present in the location, the adjustment cannot do anything. If no condition adds points to an NPC option, the NPC does nothing that turn.
 
 When the player chooses an action, the engine stores a manual adjustment for that character and action context. The amount is calculated from the adjustment-free scores for that turn: it is large enough to make the human-picked action the highest-scoring valid option by a small margin on a comparable later run.
 
@@ -150,18 +130,17 @@ behaviorFudges[characterId][slotOrActionId] = {
   amount,
   startsAt,
   locationId,
-  targetId,
-  tags
+  targetId
 }
 ```
 
-On later runs, the adjustment applies only on or after `startsAt`. It boosts the same action if it is valid, gives a smaller pull to similar actions, and nudges movement toward the relevant location. If the action is impossible, it cannot fire. If the current situation makes another valid action score higher, the character can diverge.
+On later runs, the adjustment applies only on or after `startsAt`, in the same recorded location/target context, and only to the same action id. If the action is impossible, it cannot fire. If current conditions make another valid action score higher, the character can diverge.
 
 Starting a new run as a character clears that character's previous manual adjustments. The new run then records a fresh set from the player's choices, including generated movement and waiting choices.
 
 ## Decision Debugging
 
-During a run, the UI is intentionally a compact behavior workbench. Each character row shows location, top goal, top action, and final action score. Expanding a character shows ranked goals with their weighted variables, local choice increments, instruction status, stored manual adjustment amounts, and the full ranked action list. Each action row includes its action id, `default +/-N` non-goal score, score-part chips, `goal +N` pressure, and `applied +/-N` prior manual adjustment pressure.
+During a run, the UI is intentionally a compact behavior workbench. Each character row shows location, top condition set, top action, and final action score. Expanding a character shows condition sets with their local choice increments, instruction status, stored manual adjustment amounts, and the full ranked action list. Each action row includes its action id, total condition score, active condition chips, and any prior manual adjustment amount.
 
 ## Deploy
 
