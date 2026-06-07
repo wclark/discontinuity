@@ -12,7 +12,6 @@
     "guilt"
   ];
   const FUDGE_MARGIN = 3;
-  const MAX_FUDGE = 9;
   const MIN_FUDGE = 1.5;
 
   function clone(value) {
@@ -142,6 +141,10 @@
   }
 
   function startRun(save, playerId) {
+    save.behaviorFudges = save.behaviorFudges || {};
+    save.authoredBiases = save.authoredBiases || {};
+    save.behaviorFudges[playerId] = {};
+    save.authoredBiases[playerId] = {};
     save.currentRun = createInitialRun(playerId);
     save.lastEnding = null;
     persist(save);
@@ -416,7 +419,7 @@
     return null;
   }
 
-  function movementActionsFor(run, save, actorId) {
+  function movementActionsFor(run, save, actorId, options = {}) {
     const locationId = getPersonLocation(run, actorId);
     const location = getLocation(locationId);
     const time = getTime(run);
@@ -427,7 +430,7 @@
     return (location.exits || []).map((exitId) => {
       const destination = getLocation(exitId);
       const routineBonus = exitId === routineStep ? 2.2 : 0;
-      const opportunityBonus = movementOpportunityScore(run, save, actorId, exitId);
+      const opportunityBonus = movementOpportunityScore(run, save, actorId, exitId, options);
       const baseScore = isPlayer ? -0.25 : -0.7;
       return {
         id: `move_${exitId}`,
@@ -445,9 +448,10 @@
     });
   }
 
-  function movementOpportunityScore(run, save, actorId, exitId) {
+  function movementOpportunityScore(run, save, actorId, exitId, options = {}) {
     let score = 0;
     const currentLocation = getPersonLocation(run, actorId);
+    const includeFudges = options.includeFudges !== false;
 
     DATA.actions.forEach((action) => {
       if (action.generated || (action.actorIds && !action.actorIds.includes(actorId))) return;
@@ -470,7 +474,7 @@
           : 0;
       }
       if (currentLocation !== action.locationId) {
-        actionPull += behaviorFudgeFor(save, run, actorId, action) * 0.45;
+        actionPull += includeFudges ? behaviorFudgeFor(save, run, actorId, action) * 0.45 : 0;
       }
       score += Math.min(4, actionPull);
     });
@@ -511,13 +515,13 @@
     };
   }
 
-  function validActionsFor(run, save, actorId) {
+  function validActionsFor(run, save, actorId, options = {}) {
     const authored = DATA.actions.filter((action) => isActionValid(action, run, actorId));
-    return authored.concat(movementActionsFor(run, save, actorId), waitAction(actorId));
+    return authored.concat(movementActionsFor(run, save, actorId, options), waitAction(actorId));
   }
 
   function scoredActionsFor(run, save, actorId, options = {}) {
-    return validActionsFor(run, save, actorId)
+    return validActionsFor(run, save, actorId, options)
       .map((action) => ({
         action,
         score: scoreAction(action, run, save, actorId, options)
@@ -630,24 +634,24 @@
     }
   }
 
+  function behaviorFudgeKey(action, run, actorId) {
+    if (action.slotId) return action.slotId;
+    if (action.generated) {
+      return `${getTime(run).id}:${getPersonLocation(run, actorId)}:${action.id}`;
+    }
+    return action.id;
+  }
+
   function recordBehaviorFudge(save, run, chosenAction, baselineScores) {
-    if (chosenAction.generated) return;
     const actorId = run.playerId;
-    const key = chosenAction.slotId || chosenAction.id;
+    const key = behaviorFudgeKey(chosenAction, run, actorId);
     const best = baselineScores[0];
     const chosen = baselineScores.find((entry) => entry.action.id === chosenAction.id);
     if (!chosen) return;
 
     save.behaviorFudges[actorId] = save.behaviorFudges[actorId] || {};
-    if (best && best.action.id === chosenAction.id) {
-      delete save.behaviorFudges[actorId][key];
-      return;
-    }
 
-    const amount = Math.min(
-      MAX_FUDGE,
-      Math.max(MIN_FUDGE, (best ? best.score : 0) - chosen.score + FUDGE_MARGIN)
-    );
+    const amount = Math.max(MIN_FUDGE, (best ? best.score : chosen.score) - chosen.score + FUDGE_MARGIN);
     save.behaviorFudges[actorId][key] = {
       actionId: chosenAction.id,
       actionLabel: chosenAction.label,
@@ -785,6 +789,31 @@
     return rows;
   }
 
+  function manualAdjustmentsFor(save, run, actorId) {
+    return Object.entries((save.behaviorFudges || {})[actorId] || {})
+      .map(([key, adjustment]) => {
+        const location = adjustment.locationId ? getLocation(adjustment.locationId) : null;
+        const startsAt = DATA.timeSlots.find((slot) => slot.id === adjustment.startsAt);
+        return {
+          key,
+          actionId: adjustment.actionId,
+          actionLabel: adjustment.actionLabel || adjustment.actionId,
+          amount: adjustment.amount || 0,
+          startsAt: adjustment.startsAt,
+          startsAtLabel: startsAt ? startsAt.label : adjustment.startsAt,
+          location: location ? location.name : null,
+          active: run.timeIndex >= timeIndexOf(adjustment.startsAt),
+          tags: adjustment.tags || []
+        };
+      })
+      .sort((left, right) => {
+        return (
+          timeIndexOf(left.startsAt) - timeIndexOf(right.startsAt) ||
+          left.actionLabel.localeCompare(right.actionLabel)
+        );
+      });
+  }
+
   function decisionDebugFor(run, save) {
     return Object.keys(DATA.characters).map((actorId) => {
       const locationId = getPersonLocation(run, actorId);
@@ -811,6 +840,7 @@
         role: DATA.characters[actorId].role,
         isPlayer: actorId === run.playerId,
         location: getLocation(locationId).name,
+        manualAdjustments: manualAdjustmentsFor(save, run, actorId),
         options
       };
     });

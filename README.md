@@ -114,7 +114,7 @@ Scoring is flexible. A score can include:
 - movement pressure toward useful locations, people, or items
 - a prior-run score adjustment that starts on or after a specific turn
 
-When the player chooses something that differs from the character's baseline top choice, the engine stores a capped adjustment for that character and action context:
+When the player chooses an action, the engine stores a manual adjustment for that character and action context. The amount is calculated from the adjustment-free scores for that turn: it is large enough to make the human-picked action the highest-scoring valid option by a small margin on a comparable later run.
 
 ```js
 behaviorFudges[characterId][slotOrActionId] = {
@@ -130,11 +130,11 @@ behaviorFudges[characterId][slotOrActionId] = {
 
 On later runs, the adjustment applies only on or after `startsAt`. It boosts the same action if it is valid, gives a smaller pull to similar actions, and nudges movement toward the relevant location. If the action is impossible, it cannot fire. If the current situation makes another valid action score higher, the character can diverge.
 
-Choosing the baseline top action again clears the stored adjustment for that decision context.
+Starting a new run as a character clears that character's previous manual adjustments. The new run then records a fresh set from the player's choices, including generated movement and waiting choices.
 
 ## Decision Debugging
 
-During a run, the right sidebar includes an **Adjusted Default Path** panel for development. It ranks the currently valid actions for every character using the same scoring pass that NPC turns use. Each collapsed row shows the top choice, location, and final score. Expanding a row shows the full candidate list; `adj +/-N` appears when a saved score adjustment changed that action's score.
+During a run, the right sidebar includes an **Adjusted Default Path** panel for development. It ranks the currently valid actions for every character using the same scoring pass that NPC turns use. Each collapsed row shows the top choice, location, and final score. Expanding a row shows the stored manual adjustment amounts for that character and the full candidate list; `applied +/-N` appears when a stored adjustment changed that action's current score.
 
 ## Deploy
 

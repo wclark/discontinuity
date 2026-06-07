@@ -241,7 +241,32 @@
 
   function adjustmentHtml(value) {
     if (Math.abs(value) < 0.05) return "";
-    return `<span class="debug-adjustment">adj ${value > 0 ? "+" : ""}${scoreText(value)}</span>`;
+    return `<span class="debug-adjustment">applied ${value > 0 ? "+" : ""}${scoreText(value)}</span>`;
+  }
+
+  function renderManualAdjustments(adjustments) {
+    const rows = adjustments
+      .map(
+        (adjustment) => `
+          <li class="debug-manual-adjustment">
+            <span class="debug-label">${escapeHtml(adjustment.actionLabel)}</span>
+            <span class="debug-score">+${scoreText(adjustment.amount)}</span>
+            <span class="debug-adjustment-meta">
+              ${escapeHtml(adjustment.startsAtLabel)}
+              ${adjustment.location ? `&middot; ${escapeHtml(adjustment.location)}` : ""}
+              &middot; ${adjustment.active ? "active" : "pending"}
+            </span>
+            ${tagsHtml(adjustment.tags)}
+          </li>
+        `
+      )
+      .join("");
+    return `
+      <div class="debug-subsection">
+        <h4 class="debug-subtitle">Manual Adjustments</h4>
+        ${rows ? `<ul class="debug-manual-list">${rows}</ul>` : emptyNote("No manual adjustments saved for this character.")}
+      </div>
+    `;
   }
 
   function renderDecisionDebug(debugRows) {
@@ -272,6 +297,8 @@
               <span class="debug-pick">${top ? escapeHtml(top.label) : "No valid action"}</span>
               <span class="debug-score">${top ? scoreText(top.score) : "--"}</span>
             </summary>
+            ${renderManualAdjustments(entry.manualAdjustments)}
+            <h4 class="debug-subtitle debug-options-title">Ranked Options</h4>
             <ol class="debug-option-list">${optionRows}</ol>
           </details>
         `;
