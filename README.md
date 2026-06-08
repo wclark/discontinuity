@@ -121,7 +121,7 @@ Every candidate action starts at zero. Scores only move when a satisfied conditi
 
 Each condition set adjustment targets one concrete choice by action id, such as `move_archive`, `wait`, or `father_take_envelope`, and adds its `amount` only if its local conditions are true. Any currently available action can be a target. Conditions can reference time, the actor's location, who is present, item possession or item location, facts, relationships, and prior choices. If the choice is not currently valid or not present in the location, the adjustment cannot do anything. If no condition adds points to an NPC option, the NPC does nothing that turn.
 
-When the player chooses an action, the engine stores a manual adjustment for that character and action context. The amount is calculated from the adjustment-free scores for that turn: it is large enough to make the human-picked action the highest-scoring valid option by a small margin on a comparable later run.
+When the player chooses an action that is not already tied for the highest adjustment-free score, the engine stores a manual adjustment for that character and action context. The amount is calculated from the adjustment-free scores for that turn: it is large enough to make the human-picked action the highest-scoring valid option by a small margin on a comparable later run. If the chosen action is already top-scored, no manual adjustment is stored.
 
 ```js
 behaviorFudges[characterId][slotOrActionId] = {
@@ -134,7 +134,7 @@ behaviorFudges[characterId][slotOrActionId] = {
 }
 ```
 
-On later runs, the adjustment applies only on or after `startsAt`, in the same recorded location/target context, and only to the same action id. If the action is impossible, it cannot fire. If current conditions make another valid action score higher, the character can diverge.
+On later runs, the adjustment applies only on or after `startsAt`, in the same recorded location/target context, and only to the same action id. Manual adjustments saved during the current played run do not affect that same run. If more than one saved adjustment could match, the most recent matching adjustment is used instead of adding them together. If the action is impossible, it cannot fire. If current conditions make another valid action score higher, the character can diverge.
 
 Starting a new run as a character clears that character's previous manual adjustments. The new run then records a fresh set from the player's choices, including generated movement and waiting choices.
 

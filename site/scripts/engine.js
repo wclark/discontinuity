@@ -45,6 +45,9 @@
   function normalizeSave(save) {
     save.behaviorFudges = save.behaviorFudges || {};
     save.authoredBiases = save.authoredBiases || {};
+    if (save.currentRun && !save.currentRun.runId) {
+      save.currentRun.runId = `${save.currentRun.playerId || "run"}-${Date.now()}`;
+    }
 
     Object.entries(save.authoredBiases).forEach(([actorId, slots]) => {
       if (!slots || save.behaviorFudges[actorId]) return;
@@ -157,6 +160,7 @@
 
     return {
       playerId,
+      runId: `${playerId}-${Date.now()}`,
       timeIndex: 0,
       people,
       items,
@@ -363,17 +367,22 @@
   }
 
   function behaviorFudgeFor(save, run, actorId, action) {
-    let total = 0;
     const actorLocation = getPersonLocation(run, actorId);
-    activeFudgesFor(save, run, actorId).forEach((fudge) => {
-      if (fudge.actionId !== action.id) return;
-      if (fudge.locationId && actorLocation !== fudge.locationId) return;
-      if (fudge.targetId && action.targetId !== fudge.targetId) return;
-      if (run.timeIndex >= timeIndexOf(fudge.startsAt)) {
-        total += fudge.amount || 0;
-      }
-    });
-    return total;
+    const matches = activeFudgesFor(save, run, actorId)
+      .filter((fudge) => {
+        if (fudge.createdRunId && fudge.createdRunId === run.runId) return false;
+        if (fudge.actionId !== action.id) return false;
+        if (fudge.locationId && actorLocation !== fudge.locationId) return false;
+        if (fudge.targetId && action.targetId !== fudge.targetId) return false;
+        return true;
+      })
+      .sort((left, right) => {
+        return (
+          timeIndexOf(right.startsAt) - timeIndexOf(left.startsAt) ||
+          (right.amount || 0) - (left.amount || 0)
+        );
+      });
+    return matches.length ? matches[0].amount || 0 : 0;
   }
 
   function goalDefinitionsFor(actorId) {
@@ -690,6 +699,7 @@
     const best = baselineScores[0];
     const chosen = baselineScores.find((entry) => entry.action.id === chosenAction.id);
     if (!chosen) return;
+    if (best && chosen.score >= best.score - 0.0001) return;
 
     save.behaviorFudges[actorId] = save.behaviorFudges[actorId] || {};
 
@@ -702,6 +712,7 @@
       locationId: chosenAction.locationId || getPersonLocation(run, actorId),
       targetId: chosenAction.targetId || null,
       tags: chosenAction.tags || [],
+      createdRunId: run.runId || null,
       lastSetAt: new Date().toISOString()
     };
   }
@@ -844,7 +855,9 @@
           startsAt: adjustment.startsAt,
           startsAtLabel: startsAt ? startsAt.label : adjustment.startsAt,
           location: location ? location.name : null,
-          active: run.timeIndex >= timeIndexOf(adjustment.startsAt)
+          active:
+            run.timeIndex >= timeIndexOf(adjustment.startsAt) &&
+            adjustment.createdRunId !== run.runId
         };
       })
       .sort((left, right) => {
