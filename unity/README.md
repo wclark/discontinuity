@@ -1,4 +1,4 @@
-# Discontinuity: Unity Workbench
+# Discontinuity: Unity Prototype
 
 A native, turn-based prototype of four interconnected lives in one household. Sixteen 15-minute turns lead from breakfast to the noon accusation. Play a person, alter a choice, then inhabit someone else and encounter its consequences. The original browser prototype is preserved in `../site/`.
 
@@ -8,15 +8,17 @@ Use Unity Hub's **Add project from disk**, select this `unity` folder, and open 
 
 From the repository root, `./prototype.ps1 Play` opens the native player, building it first if needed. `./prototype.ps1 Build` rebuilds; `./prototype.ps1 Verify` runs the simulation checks. Close this project in the editor before a command-line build. The executable is `builds/Discontinuity/Discontinuity.exe`; it needs its neighboring data folders.
 
-## Try the Mechanism
+Run `./install-desktop.ps1` from the repository root after building to create the **Discontinuity** desktop shortcut. Both the executable and shortcut use the custom blue-envelope/broken-clock icon; see [icon artwork and provenance](ICON.md).
 
-1. Start with **Unchanged day**. Clara and Jonah are in the Hall at 08:15. Give him the cloth, mock him, warn him, or leave the expected interaction unchanged.
-2. **Next turn** accepts the current condition-driven choice. **Run day** advances automatically. Neither fabricates human adjustments. Explicit action buttons are manual choices. **Undo** restores the previous complete state.
-3. Select **Jonah** in the viewpoint bar to begin the morning as him. Other characters retain their previous adjustments; the selected character's adjustments are cleared. You can restart before noon while testing.
-4. Select any person in the right-hand inspector to inspect them without restarting. **Choices** shows all valid options and their exact contributions. **Conditions** changes individual increments. **Prior choices** shows amounts, windows, and whether each has applied.
-5. **Forecast remaining day** runs the ordinary engine on a copy, assuming no more interventions. Select a completed timeline cell to inspect its ranked alternatives, fact changes, previous-pass comparison, and links to earlier contributing events.
+## Play a Life
 
-The three experiment buttons load reproducible two-pass situations: a kindness that can supply the missing corroboration, humiliation that can redirect the accusation onto Clara, and a warning that interrupts Jonah's Archive errand. They replace the working day and can be undone. They are fixtures, not alternate story scripts; the same ordinary rules produce every event.
+1. Begin as Clara in the Kitchen. Go to the Hall to meet Jonah, then choose how to treat him.
+2. Each action advances one turn. There is only one action list, ranked for your current incarnation. **Decision factors** shows or hides its condition contributions. Inactive conditions are collapsed. **Your adjustments** appears only when a choice actually needed an increment.
+3. The scene shows the people and loose items in your room, your inventory, and your recent experience. **Earlier today** contains only events you witnessed. Historical scoring is available only for your own actions.
+4. The undo arrow restores the last turn within the current life. There is no Observe mode, free character selector, autoplay, omniscient timeline, forecast button, or experiment toolbar in the game.
+5. Finish all sixteen turns. **Wake as Jonah** then begins the next incarnation. The order is Clara, Jonah, Father Vale, Dr. Merrow, then Clara again. The next person's previous adjustments are cleared; everyone else's remain. Undo cannot cross this transition.
+
+Development fixtures remain available through command-line flags only: a kindness can supply missing corroboration, humiliation can redirect the accusation onto Clara, and a warning can interrupt Jonah's Archive errand. They are not alternate story scripts; the same ordinary rules produce every event. Condition increments can still be edited in the Unity asset, without exposing other characters' internals in play.
 
 ## The Design Choice
 
@@ -64,7 +66,7 @@ Current human choices do not receive their newly recorded adjustments. Replaying
 | `Assets/Core/Simulation.cs` | Validation, scoring, pathfinding, resolution, adjustments, forecast |
 | `Assets/Core/HouseholdContent.cs` | Authored example definitions |
 | `Assets/Runtime/Household.cs` | ScriptableObject wrapper |
-| `Assets/Runtime/Workbench.cs` | UI Toolkit workbench, persistence, interaction tests |
+| `Assets/Runtime/Workbench.cs` | Incarnation-focused UI, persistence, interaction tests |
 | `Assets/Resources/Workbench.uss` | Interface styling |
 | `Assets/Editor/PrototypeBuild.cs` | Scene setup, regression checks, Windows build |
 
@@ -73,19 +75,19 @@ The core has no Unity dependency. Only the asset wrapper, UI, serialization adap
 ### Adding Content
 
 - **Room:** stable `id`, readable `name`, `description`, normalized map `x/y`, adjacent `exits`. Define both directions for bidirectional exits.
-- **Person:** stable `id`, `name`, `role`, token `color`, starting `location`, viewpoint `concern`. Add their authored choices and condition sets. Every person is playable in the workbench.
+- **Person:** stable `id`, `name`, `role`, `color`, starting `location`, viewpoint `concern`. Add their authored choices and condition sets. The list order determines the incarnation sequence.
 - **Item:** stable `id`, `name`, starting `owner`. Owners can be a person, room, or authored container. `owner:<id>` has exactly one current value.
 - **Fact:** arbitrary key/value, for example `at:jonah = hall`, `owner:envelope = archive`, `trust = yes`. Use actor-qualified social keys when extending to more than this slice's single Clara/Jonah relationship.
 - **Choice:** unique `id`, `actor`, optional `target`, required `location`, inclusive `from/until` turn window, named `slot`, `requires`, `effects`, phase, and actor/target/observer prose. A `once` slot is resolved by any of its alternatives. `$actor` and `$target` substitute in fact keys and values.
 - **Condition set:** unique `id`, `actor`, either concrete `action` or destination `route`, inclusive time window, `amount`, and conditions. Set `not` for inequality/absence. Movement IDs are `move:<room>` and waiting is `wait`, so these can be targeted directly too. There is no hidden action baseline.
 
-Fact records track which event most recently set them. Decision records retain the exact ranked alternatives and contributing event IDs. This supports a causal inspection trail without a second simulation or a cosmic morality score. It is a provenance trace, not a proof of every counterfactual necessity.
+Fact records track which event most recently set them. Decision records retain the exact ranked alternatives and contributing event IDs for development tools, but the player UI never exposes another person's scoring. Events record witnesses at resolution, including arrivals and departures. This prevents visiting a room later from revealing its earlier events. Older saves reconstruct witness lists from the ordered event log without resetting their world or choices.
 
 ## Verification and Persistence
 
 `Discontinuity > Verify simulation` tests defaults, alternate outcomes, necessary-only adjustments, nonaccumulation, replay clearing, invalidation, delayed encounters, stronger conditions, JSON round trips, forecasts, simultaneous item claims, and historical rankings. The report is `../artifacts/simulation-verification.txt`.
 
-The native player's `-smoke` flag drives actual UI Toolkit submit events through example selection, manual actions, undo, condition editing, forecasting, and timeline inspection. Run from the repository root:
+The native player's `-smoke` flag drives actual UI Toolkit submit events through manual actions, undo, factor visibility, a complete life, the locked incarnation transition, and experiencing an earlier kindness as Jonah. It also checks that NPC factors and unwitnessed events are absent from the UI. Run from the repository root:
 
 ```powershell
 ./builds/Discontinuity/Discontinuity.exe -smoke -capture artifacts/ui-smoke.png -captureQuit
@@ -97,7 +99,7 @@ Ordinary play automatically writes `household-v1.json` under Unity's `Applicatio
 
 ## Deliberate Limits
 
-This is a behavior-development workbench, not a finished adventure. Its debug map and timeline are omniscient; it does not yet restrict facts to individual knowledge, model crowds, or include location paintings. Social states are simple facts, not continuous personality variables. It compares with the immediately preceding pass, rather than maintaining a full branch tree. Forecasts assume the current human follows the unadjusted condition scores from now on.
+This is a small playable prototype, not a finished adventure. Presentation and journals are viewpoint-limited, but the condition evaluator still reads the authored world facts rather than a complete per-person belief model. Social states are simple facts, not continuous personality variables. Crowds and location paintings are not yet implemented. The engine retains forecasting and cross-character history for automated verification, not as player-facing controls.
 
 The next useful extension would be **person-scoped knowledge with event provenance**, so a secret changes a choice only after that person hears or observes it. A small bounded planner could follow later if room-by-room condition rules become burdensome. Learned behavior is not needed to prove this mechanic.
 

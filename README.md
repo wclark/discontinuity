@@ -2,9 +2,9 @@
 
 ## Unity Prototype
 
-The current behavior-development prototype is in [`unity/`](unity/README.md), using Unity 6000.6.0f1. It includes a native playable workbench, four interconnected character tracks, zero-baseline condition scoring, sparse prior-choice adjustments, editable increments, a remaining-day forecast, and historical decision/causal inspection.
+The current native prototype is in [`unity/`](unity/README.md), using Unity 6000.6.0f1. Play one complete incarnation at a time, beginning as Clara. The focused interface shows one scene, one ranked action list, your decision factors, and only events you witnessed. Condition scoring and sparse prior-choice adjustments still drive all four interconnected lives in the background.
 
-Open the `unity` folder in Unity Hub and play `Assets/Scenes/Household.unity`, or run `./prototype.ps1 Play` from this repository. Build with `./prototype.ps1 Build`; verify with `./prototype.ps1 Verify`. See the [Unity README](unity/README.md) for mechanics, authoring, experiments, and limitations.
+Open the `unity` folder in Unity Hub and play `Assets/Scenes/Household.unity`, or run `./prototype.ps1 Play` from this repository. Build with `./prototype.ps1 Build`; verify with `./prototype.ps1 Verify`. After building, `./install-desktop.ps1` creates a desktop shortcut with the custom blue-envelope icon. See the [Unity README](unity/README.md) for mechanics, authoring, and limitations.
 
 The original static site remains preserved below and in `site/`. Its S3 deployment is unchanged by the Unity prototype.
 

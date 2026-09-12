@@ -15,6 +15,7 @@ namespace Discontinuity
         {
             Data = data; Save = save ?? new Campaign();
             if (Save.world == null) Save.world = Initial();
+            RestoreWitnesses();
         }
         public static string Clock(int turn) { return (8 + turn / 4).ToString("00") + ":" + ((turn % 4) * 15).ToString("00"); }
         public World Initial()
@@ -30,6 +31,43 @@ namespace Discontinuity
             Save.previous = new List<Event>(State.events);
             Save.guidance.RemoveAll(g => g.actor == player);
             Save.player = player; Save.day++; Save.world = Initial();
+        }
+        public string NextIncarnation
+        {
+            get { return Data.people[(Data.people.FindIndex(p => p.id == Save.player) + 1) % Data.people.Count].id; }
+        }
+        public bool ContinueAsNext()
+        {
+            if (!Ended) return false;
+            Begin(NextIncarnation);
+            return true;
+        }
+        public List<Event> Experienced(string actor)
+        {
+            return State.events.Where(e => e.actor == actor || e.witnesses.Contains(actor)).ToList();
+        }
+        void AddWitnesses(Event e, World world)
+        {
+            foreach (var p in Data.people.Where(p => p.id == e.actor || world.Get("at:" + p.id) == world.Get("at:" + e.actor)))
+                if (!e.witnesses.Contains(p.id)) e.witnesses.Add(p.id);
+        }
+        void RestoreWitnesses()
+        {
+            if (State.events.All(e => e.witnesses != null && e.witnesses.Count > 0)) return;
+            // Older saves predate witness lists. Reconstruct positions in resolution order.
+            var world = Initial();
+            foreach (var e in State.events)
+            {
+                e.witnesses = new List<string>(); AddWitnesses(e, world);
+                if (!e.blocked)
+                {
+                    if (e.action.StartsWith("move:", StringComparison.Ordinal)) world.Set("at:" + e.actor, e.action.Substring(5));
+                    var choice = Data.choices.Find(c => c.id == e.action && c.actor == e.actor);
+                    if (choice != null) foreach (var effect in choice.effects)
+                        world.Set(Resolve(effect.key, e.actor, e.target), Resolve(effect.value, e.actor, e.target));
+                }
+                AddWitnesses(e, world);
+            }
         }
         public string Name(string id)
         {
@@ -173,6 +211,7 @@ namespace Discontinuity
                         conditions = o.conditions, manual = o.manual }).ToList(),
                     decision = string.Join("\n", proposal.terms.Where(t => t.active).Select(t => "+" + t.amount.ToString("0.#") + "  " + t.description)) };
                 if (proposal.manual > 0) e.decision += "\n+" + proposal.manual.ToString("0.#") + "  previous choice";
+                AddWitnesses(e, State);
                 AddCause(e.causes, State.Source("at:" + c.actor));
                 foreach (var term in proposal.terms.Where(t => t.active)) foreach (int cause in term.causes) AddCause(e.causes, cause);
                 foreach (var condition in c.requires) AddCause(e.causes, State.Source(Resolve(condition.key, c.actor, c.target)));
@@ -185,6 +224,7 @@ namespace Discontinuity
                     }
                     if (c.once) State.used.Add(c.actor + ":" + (c.slot ?? c.id));
                     if (proposal.manualId != null) State.applied.Add(proposal.manualId);
+                    AddWitnesses(e, State);
                 }
                 else
                 {

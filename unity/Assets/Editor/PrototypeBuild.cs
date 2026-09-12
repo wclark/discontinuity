@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -34,6 +35,14 @@ namespace Discontinuity
             EditorSceneManager.SaveScene(scene, "Assets/Scenes/Household.unity");
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Household.unity", true) };
             PlayerSettings.companyName = "Discontinuity"; PlayerSettings.productName = "Discontinuity";
+            PlayerSettings.bundleVersion = "0.2.0";
+            var importer = (TextureImporter)AssetImporter.GetAtPath("Assets/Resources/DiscontinuityIcon.png");
+            importer.isReadable = true; importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.maxTextureSize = 1024; importer.SaveAndReimport();
+            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/DiscontinuityIcon.png");
+            foreach (var target in new[] { NamedBuildTarget.Unknown, NamedBuildTarget.Standalone })
+                PlayerSettings.SetIcons(target, Enumerable.Repeat(icon, PlayerSettings.GetIconSizes(target, IconKind.Any).Length).ToArray(), IconKind.Any);
+            PlayerSettings.SplashScreen.show = false;
             PlayerSettings.defaultScreenWidth = 1440; PlayerSettings.defaultScreenHeight = 900;
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed; PlayerSettings.resizableWindow = true; PlayerSettings.runInBackground = true;
             AssetDatabase.SaveAssets(); AssetDatabase.Refresh();
@@ -119,6 +128,23 @@ namespace Discontinuity
             check(historical.alternatives.Any(o => o.action == "refuse" && o.conditions == 5), "event retains alternative rankings for later inspection");
             var tied = new Simulation(data); tied.State.turn = 14; tied.State.Set("at:clara", "kitchen"); tied.Step("move:hall");
             check(tied.Save.guidance.Count == 0, "choice tied at highest score needs no increment");
+            sim = new Simulation(data);
+            check(!sim.ContinueAsNext() && sim.Save.player == "clara" && sim.Save.day == 1, "incarnation is locked until day completion");
+            sim.Step();
+            check(!sim.Experienced("clara").Any(e => e.action == "tend"), "offscreen treatment is not in Clara's experience");
+            check(sim.Experienced("jonah").Any(e => e.action == "tend"), "Jonah witnesses treatment in the Garden");
+            check(sim.Experienced("clara").Any(e => e.actor == "jonah" && e.action == "move:hall"), "arrival is visible to people already in the room");
+            sim.Step("help");
+            check(sim.Experienced("jonah").Any(e => e.action == "help"), "interaction target witnesses the kindness");
+            var oldSave = JsonUtility.FromJson<Campaign>(JsonUtility.ToJson(sim.Save));
+            foreach (var e in oldSave.world.events) e.witnesses = null;
+            var migrated = new Simulation(data, oldSave);
+            check(string.Join(",", migrated.Experienced("clara").Select(e => e.id)) == string.Join(",", sim.Experienced("clara").Select(e => e.id)), "legacy saves recover the same witnessed events");
+            while (!sim.Ended) sim.Step();
+            check(sim.ContinueAsNext() && sim.Save.player == "jonah" && sim.State.turn == 0, "completed life advances to exactly the next incarnation");
+            check(sim.Save.guidance.Any(g => g.actor == "clara" && g.amount == 6), "incarnation transition preserves other character adjustments");
+            while (!sim.Ended) sim.Step();
+            check(sim.ContinueAsNext() && sim.Save.player == "vale", "second completed life advances to Vale");
             string output = Path.GetFullPath("../artifacts"); Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output, "simulation-verification.txt"), passed + " checks passed.\n" + string.Join("\n", baseForecast.Select(e => Simulation.Clock(e.turn) + " " + e.actor + ": " + e.label)));
             Debug.Log("DISCONTINUITY_VERIFIED " + passed);
@@ -131,7 +157,33 @@ namespace Discontinuity
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions { scenes = new[] { "Assets/Scenes/Household.unity" }, locationPathName = path,
                 target = BuildTarget.StandaloneWindows64, options = BuildOptions.None });
             if (report.summary.result != BuildResult.Succeeded) throw new Exception("Build failed: " + report.summary.result);
+            ExportIcon(AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/DiscontinuityIcon.png"), Path.Combine(Path.GetDirectoryName(path), "Discontinuity.ico"));
             Debug.Log("DISCONTINUITY_BUILD " + path);
+        }
+        static void ExportIcon(Texture2D source, string path)
+        {
+            int[] sizes = { 16, 24, 32, 48, 64, 128, 256 };
+            var images = sizes.Select(size =>
+            {
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                var pixels = new Color[size * size];
+                for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
+                    pixels[y * size + x] = source.GetPixelBilinear((x + .5f) / size, (y + .5f) / size);
+                texture.SetPixels(pixels);
+                byte[] png = texture.EncodeToPNG(); UnityEngine.Object.DestroyImmediate(texture); return png;
+            }).ToArray();
+            using (var writer = new BinaryWriter(File.Create(path)))
+            {
+                writer.Write((ushort)0); writer.Write((ushort)1); writer.Write((ushort)sizes.Length);
+                int offset = 6 + 16 * sizes.Length;
+                for (int i = 0; i < sizes.Length; i++)
+                {
+                    writer.Write((byte)(sizes[i] == 256 ? 0 : sizes[i])); writer.Write((byte)(sizes[i] == 256 ? 0 : sizes[i]));
+                    writer.Write((byte)0); writer.Write((byte)0); writer.Write((ushort)1); writer.Write((ushort)32);
+                    writer.Write(images[i].Length); writer.Write(offset); offset += images[i].Length;
+                }
+                foreach (byte[] png in images) writer.Write(png);
+            }
         }
     }
 }

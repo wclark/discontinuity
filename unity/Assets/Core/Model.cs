@@ -78,6 +78,7 @@ namespace Discontinuity
         public List<int> causes = new List<int>();
         public List<string> effects = new List<string>();
         public List<DecisionOption> alternatives = new List<DecisionOption>();
+        public List<string> witnesses = new List<string>();
         public string Text(string viewer)
         {
             return viewer == actor ? actorText : viewer == target && !string.IsNullOrEmpty(targetText) ? targetText : observerText;
