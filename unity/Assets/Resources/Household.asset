@@ -16,7 +16,7 @@ MonoBehaviour:
     rooms:
     - id: kitchen
       name: Kitchen
-      description: Copper pans cool above the range. Someone has left a clean cloth beside the breakfast things.
+      description: Copper pans hang above the range. Beyond the green cupboards, a door opens toward the Hall.
       x: 0.19
       y: 0.26
       exits:
@@ -24,7 +24,7 @@ MonoBehaviour:
       - garden
     - id: hall
       name: Hall
-      description: The house funnels everyone through this room. A clock ticks above the memorial portrait. At noon, the estate accounts will be read aloud.
+      description: The house funnels everyone through this room. At noon, the estate accounts will be read aloud beneath the clock.
       x: 0.5
       y: 0.52
       exits:
@@ -34,14 +34,14 @@ MonoBehaviour:
       - garden
     - id: archive
       name: Archive
-      description: The blue envelope lies among the estate accounts. Its address can establish who requested it; the ledger can establish why.
+      description: Tall shelves surround the writing desk. Rainlight falls across the estate's carefully ordered accounts.
       x: 0.81
       y: 0.26
       exits:
       - hall
     - id: garden
       name: Garden
-      description: Rain catches on the box hedges. Dr. Merrow is tending an injured groundskeeper, within sight of the house.
+      description: Rain catches on the box hedges. Beneath the awning, a stone bench faces the doors of the house.
       x: 0.19
       y: 0.78
       exits:
@@ -50,7 +50,7 @@ MonoBehaviour:
       - chapel
     - id: chapel
       name: Chapel
-      description: A prayer book waits on the lectern. In its hollow spine, an envelope could disappear without leaving the building.
+      description: Colored window light crosses the empty aisle. The lectern stands between two rows of silent pews.
       x: 0.81
       y: 0.78
       exits:
@@ -97,6 +97,7 @@ MonoBehaviour:
     facts: []
     choices:
     - id: ignore
+      activity: Passing in silence
       actor: clara
       target: jonah
       location: hall
@@ -117,6 +118,7 @@ MonoBehaviour:
       - key: cuff
         value: ignored
     - id: help
+      activity: Offering a clean cloth
       actor: clara
       target: jonah
       location: hall
@@ -144,6 +146,7 @@ MonoBehaviour:
       - key: trust
         value: yes
     - id: mock
+      activity: Mocking Jonah's cuff
       actor: clara
       target: jonah
       location: hall
@@ -166,6 +169,7 @@ MonoBehaviour:
       - key: resentment
         value: yes
     - id: threaten
+      activity: Warning Jonah away
       actor: clara
       target: jonah
       location: hall
@@ -188,6 +192,7 @@ MonoBehaviour:
       - key: afraid
         value: yes
     - id: read_ledger
+      activity: Reading the wage entries
       actor: clara
       target: 
       location: archive
@@ -208,6 +213,7 @@ MonoBehaviour:
       - key: ledger_read
         value: yes
     - id: take_envelope_clara
+      activity: Taking the envelope
       actor: clara
       target: 
       location: archive
@@ -228,6 +234,7 @@ MonoBehaviour:
       - key: owner:envelope
         value: clara
     - id: ask
+      activity: Asking Jonah for support
       actor: clara
       target: jonah
       location: hall
@@ -251,6 +258,7 @@ MonoBehaviour:
       - key: asked
         value: yes
     - id: apologize
+      activity: Apologizing to Jonah
       actor: clara
       target: jonah
       location: hall
@@ -276,6 +284,7 @@ MonoBehaviour:
       - key: trust
         value: yes
     - id: copy
+      activity: Copying the address
       actor: jonah
       target: 
       location: archive
@@ -296,6 +305,7 @@ MonoBehaviour:
       - key: address_copied
         value: yes
     - id: take_envelope_jonah
+      activity: Pocketing the envelope
       actor: jonah
       target: 
       location: archive
@@ -316,6 +326,7 @@ MonoBehaviour:
       - key: owner:envelope
         value: jonah
     - id: vouch
+      activity: Speaking for Clara
       actor: jonah
       target: clara
       location: hall
@@ -341,6 +352,7 @@ MonoBehaviour:
       - key: answered
         value: yes
     - id: refuse
+      activity: Declining to help
       actor: jonah
       target: clara
       location: hall
@@ -364,6 +376,7 @@ MonoBehaviour:
       - key: answered
         value: yes
     - id: expose
+      activity: Casting suspicion on Clara
       actor: jonah
       target: clara
       location: hall
@@ -389,6 +402,7 @@ MonoBehaviour:
       - key: clara_suspected
         value: yes
     - id: take
+      activity: Removing the envelope
       actor: vale
       target: 
       location: archive
@@ -409,6 +423,7 @@ MonoBehaviour:
       - key: owner:envelope
         value: vale
     - id: leave
+      activity: Leaving the envelope
       actor: vale
       target: 
       location: archive
@@ -429,6 +444,7 @@ MonoBehaviour:
       - key: vale_left
         value: yes
     - id: conceal
+      activity: Hiding the envelope
       actor: vale
       target: 
       location: chapel
@@ -449,6 +465,7 @@ MonoBehaviour:
       - key: owner:envelope
         value: lectern
     - id: tend
+      activity: Tending the groundskeeper
       actor: merrow
       target: 
       location: garden
@@ -469,6 +486,7 @@ MonoBehaviour:
       - key: patient_tended
         value: yes
     - id: witness
+      activity: Noticing the blue paper
       actor: merrow
       target: vale
       location: hall
@@ -492,6 +510,7 @@ MonoBehaviour:
       - key: seen_vale
         value: yes
     - id: testify
+      activity: Reporting what she saw
       actor: merrow
       target: 
       location: hall
@@ -512,6 +531,7 @@ MonoBehaviour:
       - key: testimony
         value: yes
     - id: accuse
+      activity: Accusing Jonah
       actor: vale
       target: jonah
       location: hall
@@ -538,6 +558,7 @@ MonoBehaviour:
       - key: accused
         value: jonah
     - id: accuse_clara
+      activity: Accusing Clara
       actor: vale
       target: clara
       location: hall
@@ -564,6 +585,7 @@ MonoBehaviour:
       - key: accused
         value: clara
     - id: defend
+      activity: Joining the evidence
       actor: merrow
       target: 
       location: hall
@@ -596,6 +618,7 @@ MonoBehaviour:
       - key: cleared
         value: yes
     - id: show_clara
+      activity: Showing the envelope
       actor: clara
       target: 
       location: hall
@@ -618,6 +641,7 @@ MonoBehaviour:
       - key: owner:envelope
         value: hall
     - id: show_jonah
+      activity: Showing the envelope
       actor: jonah
       target: 
       location: hall

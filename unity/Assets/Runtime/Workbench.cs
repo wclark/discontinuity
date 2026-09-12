@@ -13,6 +13,7 @@ namespace Discontinuity
     {
         Simulation sim;
         VisualElement root;
+        SceneArt art;
         string savePath, notice = "";
         bool sandbox, showFactors = true;
         readonly Stack<string> undo = new Stack<string>();
@@ -44,11 +45,14 @@ namespace Discontinuity
             root = GetComponent<UIDocument>().rootVisualElement;
             root.styleSheets.Add(Resources.Load<StyleSheet>("Workbench"));
             root.AddToClassList("app");
+            art = new SceneArt();
             if (Argument("-demo") != null) Fixture(Argument("-demo"));
             Render();
             if (Environment.GetCommandLineArgs().Contains("-smoke")) StartCoroutine(Smoke());
             else if (Argument("-capture") != null) StartCoroutine(Capture());
         }
+
+        void OnDisable() { art?.Dispose(); }
 
         VisualElement Box(VisualElement parent, string cls)
         {
@@ -79,9 +83,18 @@ namespace Discontinuity
         }
         void Advance(string action)
         {
-            if (sim.Ended) return;
+            if (sim.Ended || sim.Save.reviewPending) return;
             undo.Push(JsonUtility.ToJson(sim.Save));
-            sim.Step(action); Persist(); Render();
+            sim.Step(action); sim.Save.reviewPending = true; sim.Save.reviewIndex = 0;
+            Persist(); Render();
+        }
+        List<Event> Moments() { return sim.Experienced(sim.Save.player).Where(e => e.turn == sim.State.turn - 1).ToList(); }
+        void NextMoment()
+        {
+            if (!sim.Save.reviewPending) return;
+            sim.Save.reviewIndex++;
+            if (sim.Save.reviewIndex >= Moments().Count) { sim.Save.reviewPending = false; sim.Save.reviewIndex = 0; }
+            Persist(); Render();
         }
         void Undo()
         {
@@ -100,14 +113,18 @@ namespace Discontinuity
             root.Clear();
             string player = sim.Save.player;
             var person = sim.Data.people.Find(p => p.id == player);
-            var room = sim.Data.rooms.Find(r => r.id == sim.State.Get("at:" + player));
+            var moments = Moments();
+            var beat = sim.Save.reviewPending && moments.Count > 0 ? moments[Math.Min(sim.Save.reviewIndex, moments.Count - 1)] : null;
+            var snapshot = beat == null ? Story.Snapshot(sim.State) : beat.sceneAfter;
+            var room = sim.Data.rooms.Find(r => r.id == Story.Get(snapshot, "at:" + player));
+            int turn = beat == null ? sim.State.turn : beat.turn;
             var header = Box(root, "header");
             var brand = Box(header, "brand");
             var icon = new Image { image = Resources.Load<Texture2D>("DiscontinuityIcon"), scaleMode = ScaleMode.ScaleToFit };
             icon.AddToClassList("brand-icon"); brand.Add(icon);
             Text(brand, "Discontinuity", "brand-title");
             var clock = Box(header, "clock");
-            Text(clock, Simulation.Clock(sim.State.turn), "time");
+            Text(clock, Simulation.Clock(turn) + (beat == null ? "" : " - " + Simulation.Clock(turn + 1)), "time");
             Text(clock, "SATURDAY, 17 OCTOBER", "date");
             Button(header, "\u21b6", Undo, "icon-button", "Undo last turn").SetEnabled(undo.Count > 0);
 
@@ -119,41 +136,41 @@ namespace Discontinuity
             var dot = Box(identity, "identity-dot"); Color color;
             ColorUtility.TryParseHtmlString(person.color, out color); dot.style.backgroundColor = color;
             Text(identity, person.name.ToUpperInvariant() + " / " + person.role.ToUpperInvariant(), "eyebrow");
-            Text(identity, "LIFE " + sim.Save.day, "life");
-            Text(page, room.name, "scene-title");
+            Text(identity, "LIFE " + sim.Save.day + " / TURN " + Math.Min(turn + 1, sim.Data.turns) + " OF " + sim.Data.turns, "life");
+            var title = Box(page, "scene-heading");
+            Text(title, room.name, "scene-title");
+            Text(title, beat == null ? (sim.Ended ? "NOON" : "YOUR NEXT 15 MINUTES") : "THE TURN UNFOLDS / " + (sim.Save.reviewIndex + 1) + " OF " + moments.Count, "stage-label");
+            art.Render(page, sim, room, snapshot, beat);
             Text(page, room.description, "room-description");
-            Text(page, person.concern, "concern");
 
             var context = Box(page, "context");
-            var present = sim.Data.people.Where(p => p.id != player && sim.State.Get("at:" + p.id) == room.id).Select(p => p.name).ToList();
-            Context(context, "WITH YOU", present.Count == 0 ? "No one" : string.Join(", ", present));
-            var carrying = sim.Data.items.Where(t => sim.State.Get("owner:" + t.id) == player).Select(t => t.name).ToList();
+            var carrying = sim.Data.items.Where(t => Story.Get(snapshot, "owner:" + t.id) == player).Select(t => t.name).ToList();
             Context(context, "CARRYING", carrying.Count == 0 ? "Nothing" : string.Join(", ", carrying));
-            var visible = sim.Data.items.Where(t => sim.State.Get("owner:" + t.id) == room.id).Select(t => t.name).ToList();
-            if (visible.Count > 0) Context(context, "IN THE ROOM", string.Join(", ", visible));
+            var visible = sim.Data.items.Where(t => Story.Get(snapshot, "owner:" + t.id) == room.id).Select(t => t.name).ToList();
+            Context(context, "IN THE ROOM", visible.Count == 0 ? "No loose items" : string.Join(", ", visible));
 
             var experienced = sim.Experienced(player);
-            var recent = experienced.Where(e => e.turn == sim.State.turn - 1).ToList();
-            if (recent.Any(e => e.action != "wait")) recent.RemoveAll(e => e.action == "wait");
-            recent.RemoveAll(e => e.actor == player && e.action.StartsWith("move:", StringComparison.Ordinal));
-            if (recent.Count > 0)
+            if (beat != null)
             {
                 var narrative = Box(page, "narrative");
-                foreach (var e in recent)
-                {
-                    Text(narrative, Simulation.Clock(e.turn) + (e.actor == player ? "" : " / " + sim.Name(e.actor)), "event-time");
-                    Text(narrative, e.Text(player), "prose");
-                }
+                narrative.userData = beat.id;
+                Text(narrative, beat.actor == player ? "YOU" : sim.Name(beat.actor).ToUpperInvariant(), "event-time");
+                Text(narrative, Story.Text(sim, beat, player), "prose");
+                bool last = sim.Save.reviewIndex == moments.Count - 1;
+                Button(narrative, last ? (sim.Ended ? "Finish the morning" : "Continue to " + Simulation.Clock(sim.State.turn)) : "Next moment", NextMoment, "moment-button");
             }
-
-            if (sim.Ended)
+            else if (sim.Ended)
             {
                 var ending = Box(page, "ending");
                 Text(ending, "The morning ends.", "ending-title");
                 Text(ending, "Someone else lived through it, too.", "prose");
                 Button(ending, "Wake as " + sim.Name(sim.NextIncarnation), Continue, "continue-button");
             }
-            else RenderChoices(page);
+            else
+            {
+                Text(page, person.concern, "concern");
+                RenderChoices(page);
+            }
             RenderJournal(page, experienced);
             if (notice != "") Text(page, notice, "notice");
         }
@@ -206,14 +223,15 @@ namespace Discontinuity
         }
         void RenderJournal(VisualElement page, List<Event> experienced)
         {
-            var earlier = experienced.Where(e => e.turn < sim.State.turn - 1 && e.action != "wait").Reverse().ToList();
+            var earlier = experienced.Where(e => e.turn < sim.State.turn - (sim.Save.reviewPending ? 1 : 0))
+                .OrderByDescending(e => e.turn).ThenBy(e => e.id).ToList();
             if (earlier.Count == 0) return;
             var journal = Fold(page, "Earlier today (" + earlier.Count + ")"); journal.AddToClassList("journal");
             foreach (var e in earlier)
             {
                 var entry = Box(journal, "journal-entry"); entry.userData = e.id;
-                Text(entry, Simulation.Clock(e.turn) + " / " + sim.Name(e.actor), "event-time");
-                Text(entry, e.Text(sim.Save.player), "prose");
+                Text(entry, Simulation.Clock(e.turn) + " / " + sim.Name(e.actor) + " / " + sim.Name(Story.Room(e, sim.Save.player)), "event-time");
+                Text(entry, Story.Text(sim, e, sim.Save.player), "prose");
                 if (showFactors && e.actor == sim.Save.player && e.alternatives != null)
                 {
                     var factors = Fold(entry, "Decision factors"); factors.AddToClassList("past-factors"); factors.userData = e.actor;
@@ -227,10 +245,27 @@ namespace Discontinuity
         void Fixture(string kind)
         {
             sim = new Simulation(sim.Data); undo.Clear();
-            if (kind == "baseline") { sim.Step(); return; }
+            if (kind == "kitchen") return;
+            if (kind == "garden") sim.Save.player = "jonah";
+            if (kind == "chapel") sim.Save.player = "vale";
+            if (new[] { "baseline", "archive", "gathering", "garden", "chapel" }.Contains(kind))
+            {
+                int turns = kind == "archive" ? 4 : kind == "gathering" ? 14 : kind == "chapel" ? 9 : 1;
+                while (sim.State.turn < turns) sim.Step();
+                sim.Save.reviewPending = true;
+                string action = kind == "archive" ? "copy" : kind == "gathering" ? "accuse" : kind == "garden" ? "tend" : kind == "chapel" ? "conceal" : "move:hall";
+                sim.Save.reviewIndex = Math.Max(0, Moments().FindIndex(e => e.action == action && (kind != "baseline" || e.actor == "jonah")));
+                return;
+            }
             while (!sim.Ended) sim.Step(sim.State.turn == 1 ? (kind == "kindness" ? "help" : kind == "warning" ? "threaten" : "mock") : null);
             sim.ContinueAsNext();
             while (sim.State.turn < (kind == "warning" ? 3 : 6)) sim.Step();
+            if (kind == "kindness" || kind == "humiliation")
+            {
+                sim = new Simulation(sim.Data, sim.Save);
+                while (sim.State.turn < 7) sim.Step();
+            }
+            sim.Save.reviewPending = true;
         }
         void Click(string label)
         {
@@ -238,6 +273,14 @@ namespace Discontinuity
             if (button == null) { Application.Quit(1); throw new Exception("UI button not found: " + label); }
             button.Focus();
             using (var e = NavigationSubmitEvent.GetPooled()) { e.target = button; button.SendEvent(e); }
+        }
+        IEnumerator ReadTurn()
+        {
+            while (sim.Save.reviewPending)
+            {
+                Click(root.Q<Button>(className: "moment-button").text);
+                yield return new WaitForSecondsRealtime(.05f);
+            }
         }
         IEnumerator Smoke()
         {
@@ -255,17 +298,31 @@ namespace Discontinuity
             check(root.Query<Label>(className: "factor-copy").ToList().All(l => (string)l.userData == "clara"), "only current character decision factors");
             Click("Go to Hall"); yield return new WaitForSecondsRealtime(.2f);
             check(sim.State.turn == 1 && sim.Save.guidance.Count == 0, "natural choice advances without adjustment");
+            check(sim.Save.reviewPending && root.Query<Button>(className: "choice").ToList().Count == 0, "resolved turn has its own story stage, without future choices");
+            check(Moments().Count == 2 && !Moments().Any(e => e.action == "tend"), "read all witnessed moments, without offscreen events");
+            check(root.Query<VisualElement>(className: "cast-person").ToList().Count == 1, "first arrival snapshot does not prematurely show Jonah");
+            Click("Next moment"); yield return null;
+            check(root.Query<VisualElement>(className: "cast-person").ToList().Count == 2 && root.Q<Label>(className: "prose").text.Contains("arrives from the Garden"), "next moment depicts Jonah's actual arrival");
+            string pending = JsonUtility.ToJson(sim.Save);
+            sim = new Simulation(sim.Data, JsonUtility.FromJson<Campaign>(pending)); Render();
+            check(sim.Save.reviewPending && sim.Save.reviewIndex == 1, "save round trip resumes the same moment");
+            int resolved = sim.State.turn; yield return ReadTurn();
+            check(sim.State.turn == resolved, "reading moments never advances the simulation");
             Click("Give Jonah the clean cloth"); yield return new WaitForSecondsRealtime(.2f);
             check(sim.State.Get("trust") == "yes" && sim.Save.guidance.Single().amount == 6, "manual choice records only the necessary increment");
+            check(Moments().Any(e => e.actor == "jonah" && e.action == "wait"), "waiting in the same room is a witnessed moment");
             Click("Undo last turn"); yield return new WaitForSecondsRealtime(.2f);
             check(sim.State.turn == 1 && sim.Save.guidance.Count == 0, "undo restores this life without switching");
             Click("Give Jonah the clean cloth"); yield return new WaitForSecondsRealtime(.2f);
+            yield return ReadTurn();
             var toggle = root.Q<Toggle>(className: "factor-toggle"); toggle.value = false; yield return null;
             check(root.Query<Label>(className: "factor-copy").ToList().Count == 0, "decision factors can be collapsed");
             root.Q<Toggle>(className: "factor-toggle").value = true; yield return null;
             while (!sim.Ended)
             {
                 Click(sim.Rank(sim.Save.player)[0].choice.label); yield return new WaitForSecondsRealtime(.12f);
+                check(!sim.ContinueAsNext(), "cannot leave the life while its final moments are unread");
+                yield return ReadTurn();
             }
             check(root.Query<Button>(className: "continue-button").ToList().Count == 1, "one next incarnation at the end of the day");
             check(root.Query<VisualElement>(className: "journal-entry").ToList().All(v => sim.Experienced("clara").Any(e => e.id == (int)v.userData)), "journal includes only witnessed events");
@@ -274,8 +331,23 @@ namespace Discontinuity
             check(sim.Save.player == "jonah" && sim.State.turn == 0 && undo.Count == 0, "next life begins only after completion and cannot undo across lives");
             check(sim.Save.guidance.Any(g => g.actor == "clara" && g.amount == 6), "other life retains its authored choice");
             Click("Go to Hall"); yield return new WaitForSecondsRealtime(.2f);
+            yield return ReadTurn();
             Click("Wait here"); yield return new WaitForSecondsRealtime(.2f);
             check(sim.State.Get("trust") == "yes" && root.Query<Label>(className: "prose").ToList().Any(l => l.text.Contains("Clara places a cloth")), "next incarnation experiences the earlier kindness");
+            foreach (string kind in new[] { "kitchen", "baseline", "archive", "gathering", "garden", "chapel" })
+            {
+                Fixture(kind); Render(); yield return new WaitForSecondsRealtime(.1f);
+                var scene = root.Q<VisualElement>("illustrated-scene");
+                check(scene.worldBound.width > 100 && scene.worldBound.height > 50, kind + " scene is laid out");
+                check(root.Q<Image>(className: "room-painting").image != null, kind + " room artwork is loaded");
+                check(root.Query<Image>(className: "character-image").ToList().All(i => i.sprite != null), kind + " cast artwork is loaded");
+                if (kind == "gathering") check(root.Query<VisualElement>(className: "cast-person").ToList().Count == 4, "four people share one illustrated scene");
+                var buttons = root.Query<Button>(className: sim.Save.reviewPending ? "moment-button" : "choice").ToList();
+                check(buttons.Count > 0 && buttons[0].worldBound.yMax <= root.worldBound.yMax, kind + " primary action is visible without scrolling");
+                Directory.CreateDirectory("artifacts");
+                ScreenCapture.CaptureScreenshot(Path.GetFullPath("artifacts/story-" + kind + "-" + Screen.width + "x" + Screen.height + ".png"));
+                for (int frame = 0; frame < 10; frame++) yield return null;
+            }
             Directory.CreateDirectory("artifacts"); File.WriteAllLines("artifacts/ui-verification.txt", results);
             Fixture("baseline"); Render();
             if (Argument("-capture") != null) yield return Capture();

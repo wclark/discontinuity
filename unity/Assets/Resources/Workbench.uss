@@ -3,14 +3,26 @@ Label { white-space: normal; margin: 0; }
 Button { border-width: 0; border-radius: 3px; margin: 0; color: rgb(38, 66, 55); background-color: transparent; }
 Button:hover { background-color: rgb(229, 238, 232); }
 Button:focus { border-width: 1px; border-color: rgb(63, 133, 108); }
-.header { height: 78px; min-height: 78px; flex-direction: row; align-items: center; padding: 0 28px; background-color: rgb(28, 37, 33); color: rgb(238, 244, 239); }
+.header { height: 64px; min-height: 64px; flex-direction: row; align-items: center; padding: 0 28px; background-color: rgb(28, 37, 33); color: rgb(238, 244, 239); }
 .brand { flex-grow: 1; flex-direction: row; align-items: center; }.brand-icon { width: 42px; height: 42px; margin-right: 13px; }.brand-title { font-size: 24px; -unity-font-style: bold; }
 .clock { align-items: flex-end; margin-right: 22px; }.time { font-size: 24px; -unity-font-style: bold; }.date { font-size: 9px; color: rgb(161, 181, 168); margin-top: 2px; }
 .icon-button { width: 36px; height: 36px; padding: 0; font-size: 25px; color: rgb(220, 235, 224); background-color: rgba(150, 182, 160, .12); }.icon-button:hover { background-color: rgba(150, 182, 160, .25); }
 .page-scroll { flex-grow: 1; }.page-scroll > .unity-scroll-view__content-viewport > .unity-scroll-view__content-container { align-items: center; }
-.page { width: 100%; max-width: 1000px; padding: 28px 36px 40px; }
+.page { width: 100%; max-width: 1100px; padding: 20px 30px 40px; }
 .identity { flex-direction: row; align-items: center; margin-bottom: 10px; }.identity-dot { width: 8px; height: 8px; border-radius: 4px; margin-right: 9px; }.eyebrow { font-size: 11px; -unity-font-style: bold; color: rgb(101, 113, 105); }.life { flex-grow: 1; -unity-text-align: middle-right; font-size: 10px; color: rgb(121, 133, 124); }
-.scene-title { font-size: 32px; -unity-font-style: bold; margin-bottom: 6px; }.room-description { font-size: 15px; color: rgb(70, 83, 74); margin-bottom: 8px; }.concern { font-size: 13px; -unity-font-style: italic; color: rgb(115, 121, 110); margin-bottom: 16px; }
+.scene-title { font-size: 28px; -unity-font-style: bold; flex-grow: 1; }.room-description { font-size: 14px; color: rgb(70, 83, 74); margin: 8px 0 12px; }.concern { font-size: 13px; -unity-font-style: italic; color: rgb(100, 110, 101); margin-top: 15px; }
+.scene-heading { flex-direction: row; align-items: center; margin-bottom: 12px; }.stage-label { font-size: 10px; color: rgb(110, 125, 116); }
+.scene-art { width: 100%; height: 330px; flex-shrink: 0; overflow: hidden; background-color: rgb(76, 90, 80); }
+.room-painting { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.cast-stage { position: absolute; left: 14%; right: 14%; bottom: 14px; height: 80%; flex-direction: row; align-items: flex-end; justify-content: center; }
+.cast-person { flex-grow: 1; flex-basis: 0; min-width: 0; max-width: 220px; height: 95%; }.character-image { width: 100%; height: 100%; }
+.acting { height: 100%; }.departing { opacity: .55; }
+.cast-captions { flex-direction: row; justify-content: center; padding: 0 14%; min-height: 54px; background-color: rgb(238, 242, 237); }
+.cast-caption { flex-grow: 1; flex-basis: 0; min-width: 0; max-width: 220px; padding: 7px 4px; border-top-width: 3px; border-top-color: transparent; }
+.acting-caption { border-top-color: rgb(167, 73, 70); }
+.cast-name { font-size: 12px; -unity-font-style: bold; -unity-text-align: middle-center; }.cast-activity { font-size: 11px; color: rgb(95, 111, 101); -unity-text-align: middle-center; margin-top: 3px; }
+.acting-caption .cast-activity { color: rgb(150, 62, 61); }
+.moment-button { align-self: flex-start; min-width: 175px; min-height: 40px; padding: 10px 22px; background-color: rgb(44, 122, 94); color: white; font-size: 14px; }.moment-button:hover { background-color: rgb(47, 142, 106); }
 .context { flex-direction: row; flex-wrap: wrap; padding: 12px 0; border-top-width: 1px; border-top-color: rgb(221, 227, 220); border-bottom-width: 1px; border-bottom-color: rgb(221, 227, 220); }
 .context-group { min-width: 160px; flex-grow: 1; flex-basis: 0; padding-right: 22px; }.caption { font-size: 10px; -unity-font-style: bold; color: rgb(112, 125, 115); }.context-value { font-size: 13px; margin-top: 5px; color: rgb(51, 83, 64); }
 .narrative { padding: 17px 0 4px; }.event-time { font-size: 10px; color: rgb(122, 136, 125); margin-bottom: 4px; }.prose { font-size: 16px; margin-bottom: 12px; }

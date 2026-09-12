@@ -19,6 +19,7 @@ namespace Discontinuity
     [Serializable] public class Choice
     {
         public string id, actor, target, location, slot, label, actorText, targetText, observerText;
+        public string activity;
         public int from, until = 15, phase = 1;
         public bool once = true;
         public List<Condition> requires = new List<Condition>();
@@ -79,6 +80,8 @@ namespace Discontinuity
         public List<string> effects = new List<string>();
         public List<DecisionOption> alternatives = new List<DecisionOption>();
         public List<string> witnesses = new List<string>();
+        public List<Fact> sceneBefore = new List<Fact>();
+        public List<Fact> sceneAfter = new List<Fact>();
         public string Text(string viewer)
         {
             return viewer == actor ? actorText : viewer == target && !string.IsNullOrEmpty(targetText) ? targetText : observerText;
@@ -109,6 +112,8 @@ namespace Discontinuity
     {
         public int version = 1, day = 1;
         public string player = "clara";
+        public bool reviewPending;
+        public int reviewIndex;
         public World world;
         public List<Guidance> guidance = new List<Guidance>();
         public List<NumberSetting> weights = new List<NumberSetting>();

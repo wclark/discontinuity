@@ -13,10 +13,11 @@ Run `./install-desktop.ps1` from the repository root after building to create th
 ## Play a Life
 
 1. Begin as Clara in the Kitchen. Go to the Hall to meet Jonah, then choose how to treat him.
-2. Each action advances one turn. There is only one action list, ranked for your current incarnation. **Decision factors** shows or hides its condition contributions. Inactive conditions are collapsed. **Your adjustments** appears only when a choice actually needed an increment.
-3. The scene shows the people and loose items in your room, your inventory, and your recent experience. **Earlier today** contains only events you witnessed. Historical scoring is available only for your own actions.
-4. The undo arrow restores the last turn within the current life. There is no Observe mode, free character selector, autoplay, omniscient timeline, forecast button, or experiment toolbar in the game.
-5. Finish all sixteen turns. **Wake as Jonah** then begins the next incarnation. The order is Clara, Jonah, Father Vale, Dr. Merrow, then Clara again. The next person's previous adjustments are cleared; everyone else's remain. Undo cannot cross this transition.
+2. Choose one action for the next fifteen minutes. All four people decide from the same start-of-turn world, then the witnessed events unfold one moment at a time. **Next moment** reads the next event; **Continue to [time]** finishes the recap. Reading does not advance the simulation or record another adjustment. You cannot choose again until the turn has finished unfolding.
+3. Five illustrated rooms and four independent character cutouts depict each event at its actual location, with the people present at that moment. The acting person is highlighted with an action caption. Arrivals, departures, conversations, item actions, and waiting are all observable when co-located. Your inventory and loose room items reflect that moment, not a later state. These first-pass figures are standees, not action-specific animation. See [artwork and generation prompts](ART.md).
+4. There is one ranked action list for your current incarnation. **Decision factors** shows or hides its condition contributions; inactive conditions are collapsed. **Your adjustments** appears only when a choice needed an increment. **Earlier today** contains every witnessed event from completed turns, including movement and waiting. Historical scoring is available only for your own actions.
+5. The undo arrow restores the last turn within the current life. There is no Observe mode, free character selector, autoplay, omniscient timeline, forecast button, or experiment toolbar in the game.
+6. Finish all sixteen turns and their witnessed moments. **Wake as Jonah** then begins the next incarnation. The order is Clara, Jonah, Father Vale, Dr. Merrow, then Clara again. The next person's previous adjustments are cleared; everyone else's remain. Undo cannot cross this transition.
 
 Development fixtures remain available through command-line flags only: a kindness can supply missing corroboration, humiliation can redirect the accusation onto Clara, and a warning can interrupt Jonah's Archive errand. They are not alternate story scripts; the same ordinary rules produce every event. Condition increments can still be edited in the Unity asset, without exposing other characters' internals in play.
 
@@ -65,8 +66,10 @@ Current human choices do not receive their newly recorded adjustments. Replaying
 | `Assets/Core/Model.cs` | Serializable entities, facts, decisions, events, campaign |
 | `Assets/Core/Simulation.cs` | Validation, scoring, pathfinding, resolution, adjustments, forecast |
 | `Assets/Core/HouseholdContent.cs` | Authored example definitions |
+| `Assets/Core/Story.cs` | Event-time scenes, observed arrival/departure prose, activity captions |
 | `Assets/Runtime/Household.cs` | ScriptableObject wrapper |
 | `Assets/Runtime/Workbench.cs` | Incarnation-focused UI, persistence, interaction tests |
+| `Assets/Runtime/SceneArt.cs` | Room paintings and independently composited character cutouts |
 | `Assets/Resources/Workbench.uss` | Interface styling |
 | `Assets/Editor/PrototypeBuild.cs` | Scene setup, regression checks, Windows build |
 
@@ -81,25 +84,25 @@ The core has no Unity dependency. Only the asset wrapper, UI, serialization adap
 - **Choice:** unique `id`, `actor`, optional `target`, required `location`, inclusive `from/until` turn window, named `slot`, `requires`, `effects`, phase, and actor/target/observer prose. A `once` slot is resolved by any of its alternatives. `$actor` and `$target` substitute in fact keys and values.
 - **Condition set:** unique `id`, `actor`, either concrete `action` or destination `route`, inclusive time window, `amount`, and conditions. Set `not` for inequality/absence. Movement IDs are `move:<room>` and waiting is `wait`, so these can be targeted directly too. There is no hidden action baseline.
 
-Fact records track which event most recently set them. Decision records retain the exact ranked alternatives and contributing event IDs for development tools, but the player UI never exposes another person's scoring. Events record witnesses at resolution, including arrivals and departures. This prevents visiting a room later from revealing its earlier events. Older saves reconstruct witness lists from the ordered event log without resetting their world or choices.
+Fact records track which event most recently set them. Decision records retain the exact ranked alternatives and contributing event IDs for development tools, but the player UI never exposes another person's scoring. Events record witnesses at resolution and copies of visible positions and item ownership immediately before and after each action. An arrival is visible at the destination, a departure at the origin; someone arriving later does not retroactively witness an earlier conversation. `Story` derives prose and the illustrated cast from these immutable snapshots, never from a forecast. Older saves reconstruct these presentation snapshots and witness lists from the ordered event log without resetting their world or choices.
 
 ## Verification and Persistence
 
 `Discontinuity > Verify simulation` tests defaults, alternate outcomes, necessary-only adjustments, nonaccumulation, replay clearing, invalidation, delayed encounters, stronger conditions, JSON round trips, forecasts, simultaneous item claims, and historical rankings. The report is `../artifacts/simulation-verification.txt`.
 
-The native player's `-smoke` flag drives actual UI Toolkit submit events through manual actions, undo, factor visibility, a complete life, the locked incarnation transition, and experiencing an earlier kindness as Jonah. It also checks that NPC factors and unwitnessed events are absent from the UI. Run from the repository root:
+The native player's `-smoke` flag drives actual UI Toolkit submit events through manual actions, the witnessed-moment sequence, save/resume, undo, factor visibility, a complete life, the locked incarnation transition, and experiencing an earlier kindness as Jonah. It checks that reading cannot advance time, that the scene changes at the right event, and that NPC factors and unwitnessed events are absent. Six visual fixtures check all five backgrounds, one through four figures, and primary-button visibility, capturing the actual framebuffer under `../artifacts/story-*.png`. Run from the repository root:
 
 ```powershell
 ./builds/Discontinuity/Discontinuity.exe -smoke -capture artifacts/ui-smoke.png -captureQuit
 ```
 
-Capture flags use the actual rendered player framebuffer and need a visible graphics window. `-demo kindness`, `-demo humiliation`, `-demo warning`, or `-demo baseline` starts a deterministic fixture. Demo, smoke, and capture modes do not overwrite the player's save.
+Capture flags use the actual rendered player framebuffer and need a visible graphics window. `-demo kindness`, `-demo humiliation`, `-demo warning`, or `-demo baseline` starts a deterministic fixture. Art fixtures include `-demo kitchen`, `archive`, `gathering`, `garden`, and `chapel`. Demo, smoke, and capture modes do not overwrite the player's save.
 
-Ordinary play automatically writes `household-v1.json` under Unity's `Application.persistentDataPath`, normally `%USERPROFILE%/AppData/LocalLow/Discontinuity/Discontinuity/` on Windows. The current world, event history, other-viewpoint adjustments, condition overrides, and previous pass persist. This replaces browser `localStorage` for the native prototype.
+Ordinary play automatically writes `household-v1.json` under Unity's `Application.persistentDataPath`, normally `%USERPROFILE%/AppData/LocalLow/Discontinuity/Discontinuity/` on Windows. The current world, event history, other-viewpoint adjustments, condition overrides, previous pass, and exact unread-moment cursor persist. This replaces browser `localStorage` for the native prototype.
 
 ## Deliberate Limits
 
-This is a small playable prototype, not a finished adventure. Presentation and journals are viewpoint-limited, but the condition evaluator still reads the authored world facts rather than a complete per-person belief model. Social states are simple facts, not continuous personality variables. Crowds and location paintings are not yet implemented. The engine retains forecasting and cross-character history for automated verification, not as player-facing controls.
+This is a small playable prototype, not a finished adventure. Presentation and journals are viewpoint-limited, but the condition evaluator still reads the authored world facts rather than a complete per-person belief model. Social states are simple facts, not continuous personality variables. Crowds are prose-only. The first illustrated pass uses separate standing cutouts with action captions; physical interactions, movable item sprites, and action-specific poses are not animated yet. The engine retains forecasting and cross-character history for automated verification, not as player-facing controls.
 
 The next useful extension would be **person-scoped knowledge with event provenance**, so a secret changes a choice only after that person hears or observes it. A small bounded planner could follow later if room-by-room condition rules become burdensome. Learned behavior is not needed to prove this mechanic.
 

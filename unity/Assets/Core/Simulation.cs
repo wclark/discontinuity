@@ -31,6 +31,7 @@ namespace Discontinuity
             Save.previous = new List<Event>(State.events);
             Save.guidance.RemoveAll(g => g.actor == player);
             Save.player = player; Save.day++; Save.world = Initial();
+            Save.reviewPending = false; Save.reviewIndex = 0;
         }
         public string NextIncarnation
         {
@@ -38,7 +39,7 @@ namespace Discontinuity
         }
         public bool ContinueAsNext()
         {
-            if (!Ended) return false;
+            if (!Ended || Save.reviewPending) return false;
             Begin(NextIncarnation);
             return true;
         }
@@ -53,11 +54,12 @@ namespace Discontinuity
         }
         void RestoreWitnesses()
         {
-            if (State.events.All(e => e.witnesses != null && e.witnesses.Count > 0)) return;
-            // Older saves predate witness lists. Reconstruct positions in resolution order.
+            if (State.events.All(e => e.witnesses != null && e.witnesses.Count > 0 && e.sceneAfter != null && e.sceneAfter.Count > 0)) return;
+            // Reconstruct old presentation snapshots in event order, without changing live facts.
             var world = Initial();
             foreach (var e in State.events)
             {
+                e.sceneBefore = Story.Snapshot(world);
                 e.witnesses = new List<string>(); AddWitnesses(e, world);
                 if (!e.blocked)
                 {
@@ -67,6 +69,7 @@ namespace Discontinuity
                         world.Set(Resolve(effect.key, e.actor, e.target), Resolve(effect.value, e.actor, e.target));
                 }
                 AddWitnesses(e, world);
+                e.sceneAfter = Story.Snapshot(world);
             }
         }
         public string Name(string id)
@@ -211,6 +214,7 @@ namespace Discontinuity
                         conditions = o.conditions, manual = o.manual }).ToList(),
                     decision = string.Join("\n", proposal.terms.Where(t => t.active).Select(t => "+" + t.amount.ToString("0.#") + "  " + t.description)) };
                 if (proposal.manual > 0) e.decision += "\n+" + proposal.manual.ToString("0.#") + "  previous choice";
+                e.sceneBefore = Story.Snapshot(State);
                 AddWitnesses(e, State);
                 AddCause(e.causes, State.Source("at:" + c.actor));
                 foreach (var term in proposal.terms.Where(t => t.active)) foreach (int cause in term.causes) AddCause(e.causes, cause);
@@ -232,6 +236,7 @@ namespace Discontinuity
                     e.observerText = Name(c.actor) + " cannot complete: " + c.label + ".";
                     e.targetText = e.observerText;
                 }
+                e.sceneAfter = Story.Snapshot(State);
                 var before = Save.previous.Find(v => v.turn == e.turn && v.actor == e.actor);
                 e.changed = before != null && (before.action != e.action || before.blocked != e.blocked);
                 State.events.Add(e);

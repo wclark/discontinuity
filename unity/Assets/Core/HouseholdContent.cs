@@ -9,11 +9,11 @@ namespace Discontinuity
         public static Scenario Create()
         {
             var s = new Scenario();
-            s.rooms.Add(new Room { id = "kitchen", name = "Kitchen", x = .19f, y = .26f, exits = new[] { "hall", "garden" }, description = "Copper pans cool above the range. Someone has left a clean cloth beside the breakfast things." });
-            s.rooms.Add(new Room { id = "hall", name = "Hall", x = .5f, y = .52f, exits = new[] { "kitchen", "archive", "chapel", "garden" }, description = "The house funnels everyone through this room. A clock ticks above the memorial portrait. At noon, the estate accounts will be read aloud." });
-            s.rooms.Add(new Room { id = "archive", name = "Archive", x = .81f, y = .26f, exits = new[] { "hall" }, description = "The blue envelope lies among the estate accounts. Its address can establish who requested it; the ledger can establish why." });
-            s.rooms.Add(new Room { id = "garden", name = "Garden", x = .19f, y = .78f, exits = new[] { "kitchen", "hall", "chapel" }, description = "Rain catches on the box hedges. Dr. Merrow is tending an injured groundskeeper, within sight of the house." });
-            s.rooms.Add(new Room { id = "chapel", name = "Chapel", x = .81f, y = .78f, exits = new[] { "hall", "garden" }, description = "A prayer book waits on the lectern. In its hollow spine, an envelope could disappear without leaving the building." });
+            s.rooms.Add(new Room { id = "kitchen", name = "Kitchen", x = .19f, y = .26f, exits = new[] { "hall", "garden" }, description = "Copper pans hang above the range. Beyond the green cupboards, a door opens toward the Hall." });
+            s.rooms.Add(new Room { id = "hall", name = "Hall", x = .5f, y = .52f, exits = new[] { "kitchen", "archive", "chapel", "garden" }, description = "The house funnels everyone through this room. At noon, the estate accounts will be read aloud beneath the clock." });
+            s.rooms.Add(new Room { id = "archive", name = "Archive", x = .81f, y = .26f, exits = new[] { "hall" }, description = "Tall shelves surround the writing desk. Rainlight falls across the estate's carefully ordered accounts." });
+            s.rooms.Add(new Room { id = "garden", name = "Garden", x = .19f, y = .78f, exits = new[] { "kitchen", "hall", "chapel" }, description = "Rain catches on the box hedges. Beneath the awning, a stone bench faces the doors of the house." });
+            s.rooms.Add(new Room { id = "chapel", name = "Chapel", x = .81f, y = .78f, exits = new[] { "hall", "garden" }, description = "Colored window light crosses the empty aisle. The lectern stands between two rows of silent pews." });
             s.people.Add(new Person { id = "clara", name = "Clara", role = "MAID", color = "#c76a59", location = "kitchen", concern = "Your brother's wages are missing from the estate accounts. The ledger may explain it." });
             s.people.Add(new Person { id = "jonah", name = "Jonah", role = "PRINTER'S APPRENTICE", color = "#488db6", location = "garden", concern = "Copy an address, finish an errand, leave quietly. Ink on your cuff makes you feel conspicuous." });
             s.people.Add(new Person { id = "vale", name = "Father Vale", role = "PRIEST", color = "#9a81b5", location = "chapel", concern = "Keep the parish's name out of the accounts. The blue envelope connects it to the missing wages." });
@@ -123,6 +123,34 @@ namespace Discontinuity
             Points(s, "m03", "merrow", "witness", 5, 10, 8, Is("owner:envelope", "vale"), Is("at:vale", "hall"));
             Points(s, "m04", "merrow", "testify", 9, 14, 8, Is("seen_vale", "yes"));
             Points(s, "m05", "merrow", "defend", 12, 15, 15, Is("testimony", "yes"), Is("address_copied", "yes"), Is("vouched", "yes"));
+            var activities = new Dictionary<string, string>
+            {
+                { "ignore", "Passing in silence" },
+                { "help", "Offering a clean cloth" },
+                { "mock", "Mocking Jonah's cuff" },
+                { "threaten", "Warning Jonah away" },
+                { "read_ledger", "Reading the wage entries" },
+                { "take_envelope_clara", "Taking the envelope" },
+                { "ask", "Asking Jonah for support" },
+                { "apologize", "Apologizing to Jonah" },
+                { "copy", "Copying the address" },
+                { "take_envelope_jonah", "Pocketing the envelope" },
+                { "vouch", "Speaking for Clara" },
+                { "refuse", "Declining to help" },
+                { "expose", "Casting suspicion on Clara" },
+                { "take", "Removing the envelope" },
+                { "leave", "Leaving the envelope" },
+                { "conceal", "Hiding the envelope" },
+                { "tend", "Tending the groundskeeper" },
+                { "witness", "Noticing the blue paper" },
+                { "testify", "Reporting what she saw" },
+                { "accuse", "Accusing Jonah" },
+                { "accuse_clara", "Accusing Clara" },
+                { "defend", "Joining the evidence" },
+                { "show_clara", "Showing the envelope" },
+                { "show_jonah", "Showing the envelope" },
+            };
+            foreach (var choice in s.choices) choice.activity = activities[choice.id];
             return s;
         }
         static void Add(Scenario s, string id, string actor, string label, string location, string slot, int from, int until, int phase,

@@ -28,14 +28,29 @@ namespace Discontinuity
             panel.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight; panel.match = .5f;
             panel.themeStyleSheet = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>("Assets/Resources/RuntimeTheme.tss");
             EditorUtility.SetDirty(panel);
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            var camera = new GameObject("Camera").AddComponent<Camera>(); camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(.12f, .16f, .14f); camera.orthographic = true;
-            var go = new GameObject("Discontinuity Workbench"); var doc = go.AddComponent<UIDocument>(); doc.panelSettings = panel; go.AddComponent<Workbench>();
-            EditorSceneManager.SaveScene(scene, "Assets/Scenes/Household.unity");
+            if (!File.Exists("Assets/Scenes/Household.unity"))
+            {
+                var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                var camera = new GameObject("Camera").AddComponent<Camera>(); camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = new Color(.12f, .16f, .14f); camera.orthographic = true;
+                var go = new GameObject("Discontinuity Workbench"); var doc = go.AddComponent<UIDocument>(); doc.panelSettings = panel; go.AddComponent<Workbench>();
+                EditorSceneManager.SaveScene(scene, "Assets/Scenes/Household.unity");
+            }
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Household.unity", true) };
             PlayerSettings.companyName = "Discontinuity"; PlayerSettings.productName = "Discontinuity";
-            PlayerSettings.bundleVersion = "0.2.0";
+            PlayerSettings.bundleVersion = "0.3.0";
+            foreach (string path in Directory.GetFiles("Assets/Resources/Scenes", "*.png").Concat(new[] { "Assets/Resources/Characters.png" }))
+            {
+                var textureImporter = (TextureImporter)AssetImporter.GetAtPath(path.Replace('\\', '/'));
+                textureImporter.textureType = TextureImporterType.Default;
+                textureImporter.alphaIsTransparency = true;
+                textureImporter.isReadable = path.EndsWith("Characters.png", StringComparison.Ordinal);
+                textureImporter.textureCompression = TextureImporterCompression.Uncompressed;
+                textureImporter.maxTextureSize = 4096;
+                textureImporter.mipmapEnabled = false;
+                textureImporter.npotScale = TextureImporterNPOTScale.None;
+                textureImporter.SaveAndReimport();
+            }
             var importer = (TextureImporter)AssetImporter.GetAtPath("Assets/Resources/DiscontinuityIcon.png");
             importer.isReadable = true; importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.maxTextureSize = 1024; importer.SaveAndReimport();
@@ -145,6 +160,43 @@ namespace Discontinuity
             check(sim.Save.guidance.Any(g => g.actor == "clara" && g.amount == 6), "incarnation transition preserves other character adjustments");
             while (!sim.Ended) sim.Step();
             check(sim.ContinueAsNext() && sim.Save.player == "vale", "second completed life advances to Vale");
+            sim = new Simulation(data); sim.Step();
+            var arrival = sim.Experienced("clara").Find(e => e.actor == "jonah");
+            check(Story.Text(sim, arrival, "clara") == "Jonah arrives from the Garden.", "arrival prose uses the observer's actual location");
+            check(Story.Text(sim, arrival, "merrow") == "Jonah leaves for the Hall.", "departure prose differs for the person left behind");
+            check(Story.Cast(data, arrival.sceneAfter, "garden", arrival).Any(p => p.id == "jonah"), "departing figure remains visible during the departure beat");
+            check(!Story.Cast(data, Story.Snapshot(sim.State), "garden").Any(p => p.id == "jonah"), "departed figure is absent from the next scene");
+            var first = sim.State.events.Find(e => e.actor == "clara");
+            check(Story.Cast(data, first.sceneAfter, "hall", first).Count == 1, "event snapshot excludes a later arrival");
+            sim.Step("help");
+            check(sim.Experienced("clara").Any(e => e.turn == 1 && e.actor == "jonah" && e.action == "wait"), "co-located waiting is observable");
+            var help = sim.State.events.Find(e => e.action == "help");
+            check(Story.Get(help.sceneBefore, "owner:cloth") == "clara" && Story.Get(help.sceneAfter, "owner:cloth") == "jonah", "event records the visible item transfer");
+            sim.Step(); sim.Step();
+            var copy = sim.Experienced("clara").Find(e => e.action == "copy");
+            check(copy != null && Story.Room(copy, "clara") == "archive", "Clara witnesses Jonah copying in the Archive");
+            check(Story.Activity(sim, copy, data.people.Find(p => p.id == "jonah"), "archive") == "Copying the address", "scene activity comes from the resolved action definition");
+            while (!sim.Ended) sim.Step();
+            check(Story.Get(help.sceneAfter, "owner:cloth") == "jonah" && Story.Room(copy, "clara") == "archive", "later simulation cannot mutate earlier scene snapshots");
+            sim.Save.reviewPending = true; sim.Save.reviewIndex = 1;
+            var resume = new Simulation(data, JsonUtility.FromJson<Campaign>(JsonUtility.ToJson(sim.Save)));
+            check(resume.Save.reviewPending && resume.Save.reviewIndex == 1 && !resume.ContinueAsNext(), "pending story stage survives save and gates incarnation");
+            var legacy = JsonUtility.FromJson<Campaign>(JsonUtility.ToJson(sim.Save));
+            foreach (var e in legacy.world.events) { e.sceneBefore = null; e.sceneAfter = null; }
+            var recovered = new Simulation(data, legacy);
+            check(JsonUtility.ToJson(recovered.State) == JsonUtility.ToJson(sim.State), "legacy presentation migration restores exact scene snapshots without changing live facts");
+            foreach (var room in data.rooms)
+            {
+                var painting = Resources.Load<Texture2D>("Scenes/" + room.id);
+                check(painting != null && painting.width >= 2000 && painting.height >= 700, room.id + " illustration is full resolution");
+            }
+            var cast = Resources.Load<Texture2D>("Characters");
+            check(cast != null && cast.GetPixel(0, 0).a == 0, "character atlas has a transparent background");
+            for (int i = 0; i < 4; i++)
+            {
+                var pixels = cast.GetPixels(i * cast.width / 4, 0, cast.width / 4, cast.height);
+                check(pixels.Any(p => p.a > .9f) && pixels.Any(p => p.a < .1f), "character column " + i + " contains a separate cutout");
+            }
             string output = Path.GetFullPath("../artifacts"); Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output, "simulation-verification.txt"), passed + " checks passed.\n" + string.Join("\n", baseForecast.Select(e => Simulation.Clock(e.turn) + " " + e.actor + ": " + e.label)));
             Debug.Log("DISCONTINUITY_VERIFIED " + passed);
