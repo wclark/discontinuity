@@ -1,3 +1,15 @@
 .DS_Store
 Thumbs.db
 *.log
+
+# Unity generated output
+unity/Library/
+unity/Temp/
+unity/Obj/
+unity/Logs/
+unity/UserSettings/
+unity/.vs/
+unity/*.csproj
+unity/*.sln
+builds/
+artifacts/

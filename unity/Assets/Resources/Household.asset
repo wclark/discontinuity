@@ -1,0 +1,977 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9f2347b257269b44b5b39a58c206995, type: 3}
+  m_Name: Household
+  m_EditorClassIdentifier: Assembly-CSharp::Discontinuity.Household
+  definition:
+    rooms:
+    - id: kitchen
+      name: Kitchen
+      description: Copper pans cool above the range. Someone has left a clean cloth beside the breakfast things.
+      x: 0.19
+      y: 0.26
+      exits:
+      - hall
+      - garden
+    - id: hall
+      name: Hall
+      description: The house funnels everyone through this room. A clock ticks above the memorial portrait. At noon, the estate accounts will be read aloud.
+      x: 0.5
+      y: 0.52
+      exits:
+      - kitchen
+      - archive
+      - chapel
+      - garden
+    - id: archive
+      name: Archive
+      description: The blue envelope lies among the estate accounts. Its address can establish who requested it; the ledger can establish why.
+      x: 0.81
+      y: 0.26
+      exits:
+      - hall
+    - id: garden
+      name: Garden
+      description: Rain catches on the box hedges. Dr. Merrow is tending an injured groundskeeper, within sight of the house.
+      x: 0.19
+      y: 0.78
+      exits:
+      - kitchen
+      - hall
+      - chapel
+    - id: chapel
+      name: Chapel
+      description: A prayer book waits on the lectern. In its hollow spine, an envelope could disappear without leaving the building.
+      x: 0.81
+      y: 0.78
+      exits:
+      - hall
+      - garden
+    people:
+    - id: clara
+      name: Clara
+      role: MAID
+      color: '#c76a59'
+      location: kitchen
+      concern: Your brother's wages are missing from the estate accounts. The ledger may explain it.
+    - id: jonah
+      name: Jonah
+      role: PRINTER'S APPRENTICE
+      color: '#488db6'
+      location: garden
+      concern: Copy an address, finish an errand, leave quietly. Ink on your cuff makes you feel conspicuous.
+    - id: vale
+      name: Father Vale
+      role: PRIEST
+      color: '#9a81b5'
+      location: chapel
+      concern: Keep the parish's name out of the accounts. The blue envelope connects it to the missing wages.
+    - id: merrow
+      name: Dr. Merrow
+      role: PHYSICIAN
+      color: '#509b80'
+      location: garden
+      concern: Tend a patient, then attend the reading. A useful witness must have seen something, not merely suspected it.
+    items:
+    - id: envelope
+      name: Blue envelope
+      owner: archive
+    - id: ledger
+      name: Estate ledger
+      owner: archive
+    - id: cloth
+      name: Clean cloth
+      owner: clara
+    - id: medicine
+      name: Medicine
+      owner: merrow
+    facts: []
+    choices:
+    - id: ignore
+      actor: clara
+      target: jonah
+      location: hall
+      slot: cuff
+      label: Pass Jonah quietly
+      actorText: You notice Jonah hiding the ink on his cuff. You let him have his silence.
+      targetText: Clara notices the ink. She walks past without a word.
+      observerText: Clara passes Jonah without speaking.
+      from: 1
+      until: 4
+      phase: 0
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      effects:
+      - key: cuff
+        value: ignored
+    - id: help
+      actor: clara
+      target: jonah
+      location: hall
+      slot: cuff
+      label: Give Jonah the clean cloth
+      actorText: You turn your shoulder to the room and pass Jonah your cloth. No one else needs to notice.
+      targetText: Clara places a cloth in your hand, hiding your stained cuff from the room. It is a small kindness, and not a small thing.
+      observerText: Clara quietly gives Jonah a clean cloth.
+      from: 1
+      until: 4
+      phase: 0
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: owner:cloth
+        value: clara
+        not: 0
+      effects:
+      - key: owner:cloth
+        value: jonah
+      - key: cuff
+        value: helped
+      - key: trust
+        value: yes
+    - id: mock
+      actor: clara
+      target: jonah
+      location: hall
+      slot: cuff
+      label: Mock Jonah's ink-stained cuff
+      actorText: You look at Jonah's cuff just long enough for the footman to laugh. Jonah stops trying to hide it.
+      targetText: Clara looks at the ink on your cuff. The footman laughs before you can cover it. You will have to ask this house for kindness again.
+      observerText: Clara makes Jonah's stained cuff the room's entertainment.
+      from: 1
+      until: 4
+      phase: 0
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      effects:
+      - key: cuff
+        value: mocked
+      - key: resentment
+        value: yes
+    - id: threaten
+      actor: clara
+      target: jonah
+      location: hall
+      slot: cuff
+      label: Warn Jonah to stay out of the Archive
+      actorText: You tell Jonah that Vale is looking for someone to blame. He hears the warning as a threat.
+      targetText: Clara says Vale needs someone to blame. Suddenly your harmless errand feels very dangerous.
+      observerText: Clara warns Jonah away from the Archive.
+      from: 1
+      until: 4
+      phase: 0
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      effects:
+      - key: cuff
+        value: threatened
+      - key: afraid
+        value: yes
+    - id: read_ledger
+      actor: clara
+      target: 
+      location: archive
+      slot: ledger
+      label: Read the missing wage entries
+      actorText: Three months of wages have been diverted to the parish. You close the ledger gently, as though the book could feel shame.
+      targetText: 
+      observerText: Clara finds diverted wages in the estate ledger.
+      from: 2
+      until: 8
+      phase: 1
+      once: 1
+      requires:
+      - key: owner:ledger
+        value: archive
+        not: 0
+      effects:
+      - key: ledger_read
+        value: yes
+    - id: take_envelope_clara
+      actor: clara
+      target: 
+      location: archive
+      slot: envelope
+      label: Take the blue envelope
+      actorText: You tuck the envelope beneath your apron. The paper is stiff against your ribs.
+      targetText: 
+      observerText: Clara takes the blue envelope.
+      from: 0
+      until: 10
+      phase: 1
+      once: 1
+      requires:
+      - key: owner:envelope
+        value: archive
+        not: 0
+      effects:
+      - key: owner:envelope
+        value: clara
+    - id: ask
+      actor: clara
+      target: jonah
+      location: hall
+      slot: appeal
+      label: Ask Jonah to speak for you
+      actorText: You ask Jonah to confirm what he saw in the Archive. Your future rests, briefly, in someone else's hands.
+      targetText: Clara needs you to tell the room she was reading the accounts, not stealing them. You think of her face this morning.
+      observerText: Clara asks Jonah to support her account.
+      from: 5
+      until: 10
+      phase: 0
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: ledger_read
+        value: yes
+        not: 0
+      effects:
+      - key: asked
+        value: yes
+    - id: apologize
+      actor: clara
+      target: jonah
+      location: hall
+      slot: repair
+      label: Apologize for the joke
+      actorText: You say you were cruel. No excuse follows it. Jonah looks at you for a long moment.
+      targetText: Clara apologizes without asking anything in return. You do not forgive everything. You do listen.
+      observerText: Clara apologizes to Jonah.
+      from: 4
+      until: 10
+      phase: 0
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: resentment
+        value: yes
+        not: 0
+      effects:
+      - key: resentment
+        value: no
+      - key: trust
+        value: yes
+    - id: copy
+      actor: jonah
+      target: 
+      location: archive
+      slot: errand
+      label: Copy the envelope's address
+      actorText: The envelope is addressed to the parish, not the estate. You copy the address exactly. A printer knows what a name can prove.
+      targetText: 
+      observerText: Jonah copies the parish address from the envelope.
+      from: 2
+      until: 6
+      phase: 1
+      once: 1
+      requires:
+      - key: owner:envelope
+        value: archive
+        not: 0
+      effects:
+      - key: address_copied
+        value: yes
+    - id: take_envelope_jonah
+      actor: jonah
+      target: 
+      location: archive
+      slot: errand
+      label: Put the envelope in your satchel
+      actorText: You put the envelope in your satchel. The errand has become something less innocent.
+      targetText: 
+      observerText: Jonah puts the envelope in his satchel.
+      from: 2
+      until: 6
+      phase: 1
+      once: 1
+      requires:
+      - key: owner:envelope
+        value: archive
+        not: 0
+      effects:
+      - key: owner:envelope
+        value: jonah
+    - id: vouch
+      actor: jonah
+      target: clara
+      location: hall
+      slot: answer
+      label: Vouch for Clara
+      actorText: You say Clara was reading the accounts. Your voice steadies when she turns toward you.
+      targetText: Jonah speaks for you. You remember how little it cost to hide the ink on his cuff.
+      observerText: Jonah supports Clara's account in front of witnesses.
+      from: 5
+      until: 11
+      phase: 0
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: asked
+        value: yes
+        not: 0
+      effects:
+      - key: vouched
+        value: yes
+      - key: answered
+        value: yes
+    - id: refuse
+      actor: jonah
+      target: clara
+      location: hall
+      slot: answer
+      label: Say you cannot help
+      actorText: You say you cannot be certain. It is safer. You can hear how much that costs Clara.
+      targetText: Jonah says he cannot help. Around you, the room grows interested.
+      observerText: Jonah declines to support Clara.
+      from: 5
+      until: 11
+      phase: 0
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: asked
+        value: yes
+        not: 0
+      effects:
+      - key: answered
+        value: yes
+    - id: expose
+      actor: jonah
+      target: clara
+      location: hall
+      slot: answer
+      label: Turn the suspicion back on Clara
+      actorText: You tell them Clara was asking about the accounts early. You keep your voice polite. That makes it worse.
+      targetText: Jonah repeats your questions to the room. You hear your morning joke in the space between his words.
+      observerText: Jonah draws attention to Clara's interest in the accounts.
+      from: 5
+      until: 11
+      phase: 0
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: asked
+        value: yes
+        not: 0
+      effects:
+      - key: answered
+        value: yes
+      - key: clara_suspected
+        value: yes
+    - id: take
+      actor: vale
+      target: 
+      location: archive
+      slot: envelope
+      label: Remove the envelope
+      actorText: You slip the envelope into your prayer book. You have told yourself this is protection.
+      targetText: 
+      observerText: Father Vale removes the blue envelope from the Archive.
+      from: 3
+      until: 9
+      phase: 1
+      once: 1
+      requires:
+      - key: owner:envelope
+        value: archive
+        not: 0
+      effects:
+      - key: owner:envelope
+        value: vale
+    - id: leave
+      actor: vale
+      target: 
+      location: archive
+      slot: envelope
+      label: Leave the envelope where it is
+      actorText: You leave the paper on the desk. For once, let the accounts speak for themselves.
+      targetText: 
+      observerText: Father Vale leaves the envelope on the desk.
+      from: 3
+      until: 9
+      phase: 1
+      once: 1
+      requires:
+      - key: owner:envelope
+        value: archive
+        not: 0
+      effects:
+      - key: vale_left
+        value: yes
+    - id: conceal
+      actor: vale
+      target: 
+      location: chapel
+      slot: conceal
+      label: Hide the envelope in the lectern
+      actorText: The lectern closes over the envelope. The house will have to accuse someone without it.
+      targetText: 
+      observerText: Father Vale conceals the envelope in the lectern.
+      from: 5
+      until: 11
+      phase: 1
+      once: 1
+      requires:
+      - key: owner:envelope
+        value: vale
+        not: 0
+      effects:
+      - key: owner:envelope
+        value: lectern
+    - id: tend
+      actor: merrow
+      target: 
+      location: garden
+      slot: patient
+      label: Dress the groundskeeper's injury
+      actorText: The wound is clean. You leave the patient resting beneath the awning.
+      targetText: 
+      observerText: Dr. Merrow tends the injured groundskeeper.
+      from: 0
+      until: 5
+      phase: 1
+      once: 1
+      requires:
+      - key: owner:medicine
+        value: merrow
+        not: 0
+      effects:
+      - key: patient_tended
+        value: yes
+    - id: witness
+      actor: merrow
+      target: vale
+      location: hall
+      slot: sighting
+      label: Notice what Vale is carrying
+      actorText: Blue paper shows between Vale's prayer-book pages. You remember the color, and the time.
+      targetText: Merrow's eyes rest on your prayer book. A corner of blue paper is showing.
+      observerText: Dr. Merrow sees the blue envelope in Vale's prayer book.
+      from: 5
+      until: 10
+      phase: 0
+      once: 1
+      requires:
+      - key: at:vale
+        value: hall
+        not: 0
+      - key: owner:envelope
+        value: vale
+        not: 0
+      effects:
+      - key: seen_vale
+        value: yes
+    - id: testify
+      actor: merrow
+      target: 
+      location: hall
+      slot: testimony
+      label: Tell the Hall what you saw
+      actorText: 'You tell the room exactly what you saw: blue paper, Vale''s book, a quarter to ten. No speculation.'
+      targetText: 
+      observerText: Dr. Merrow tells the Hall that Vale carried the envelope.
+      from: 9
+      until: 14
+      phase: 0
+      once: 1
+      requires:
+      - key: seen_vale
+        value: yes
+        not: 0
+      effects:
+      - key: testimony
+        value: yes
+    - id: accuse
+      actor: vale
+      target: jonah
+      location: hall
+      slot: verdict
+      label: Name Jonah before the household
+      actorText: You say Jonah's name. The room has been waiting for a name, not for proof.
+      targetText: Vale names you. You think of the address you copied, and of everyone who might speak.
+      observerText: Father Vale accuses Jonah of stealing the blue envelope.
+      from: 13
+      until: 15
+      phase: 0
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: cleared
+        value: yes
+        not: 1
+      - key: clara_suspected
+        value: yes
+        not: 1
+      effects:
+      - key: accused
+        value: jonah
+    - id: accuse_clara
+      actor: vale
+      target: clara
+      location: hall
+      slot: verdict
+      label: Name Clara before the household
+      actorText: Jonah has given you a different name to use. You let his anger do your work.
+      targetText: Vale names you, repeating Jonah's words. A joke at breakfast has traveled farther than you intended.
+      observerText: Father Vale turns Jonah's suspicion into an accusation against Clara.
+      from: 13
+      until: 15
+      phase: 0
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: clara_suspected
+        value: yes
+        not: 0
+      - key: cleared
+        value: yes
+        not: 1
+      effects:
+      - key: accused
+        value: clara
+    - id: defend
+      actor: merrow
+      target: 
+      location: hall
+      slot: verdict
+      label: Join the evidence together
+      actorText: 'Jonah''s address, Clara''s account, your sighting: three ordinary acts make a story Vale cannot divide.'
+      targetText: 
+      observerText: Merrow joins Jonah's address, Clara's corroborated account, and the sighting. The accusation fails.
+      from: 12
+      until: 15
+      phase: 0
+      once: 1
+      requires:
+      - key: testimony
+        value: yes
+        not: 0
+      - key: address_copied
+        value: yes
+        not: 0
+      - key: vouched
+        value: yes
+        not: 0
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: at:clara
+        value: hall
+        not: 0
+      effects:
+      - key: cleared
+        value: yes
+    - id: show_clara
+      actor: clara
+      target: 
+      location: hall
+      slot: verdict
+      label: Show the household the envelope
+      actorText: You place the blue envelope on the table. The missing wages have an address. No one can pretend otherwise now.
+      targetText: 
+      observerText: The envelope is opened in front of the household. The diverted wages are exposed.
+      from: 12
+      until: 15
+      phase: 0
+      once: 1
+      requires:
+      - key: owner:envelope
+        value: clara
+        not: 0
+      effects:
+      - key: cleared
+        value: yes
+      - key: owner:envelope
+        value: hall
+    - id: show_jonah
+      actor: jonah
+      target: 
+      location: hall
+      slot: verdict
+      label: Show the household the envelope
+      actorText: You place the blue envelope on the table. The missing wages have an address. No one can pretend otherwise now.
+      targetText: 
+      observerText: The envelope is opened in front of the household. The diverted wages are exposed.
+      from: 12
+      until: 15
+      phase: 0
+      once: 1
+      requires:
+      - key: owner:envelope
+        value: jonah
+        not: 0
+      effects:
+      - key: cleared
+        value: yes
+      - key: owner:envelope
+        value: hall
+    rules:
+    - id: c01
+      actor: clara
+      action: 
+      route: hall
+      from: 0
+      until: 1
+      amount: 4
+      conditions: []
+    - id: c02
+      actor: clara
+      action: ignore
+      route: 
+      from: 1
+      until: 4
+      amount: 5
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+    - id: c03
+      actor: clara
+      action: 
+      route: archive
+      from: 2
+      until: 6
+      amount: 5
+      conditions:
+      - key: ledger_read
+        value: yes
+        not: 1
+    - id: c04
+      actor: clara
+      action: read_ledger
+      route: 
+      from: 2
+      until: 8
+      amount: 6
+      conditions:
+      - key: owner:ledger
+        value: archive
+        not: 0
+    - id: c05
+      actor: clara
+      action: 
+      route: hall
+      from: 3
+      until: 15
+      amount: 4
+      conditions:
+      - key: ledger_read
+        value: yes
+        not: 0
+    - id: c06
+      actor: clara
+      action: ask
+      route: 
+      from: 5
+      until: 10
+      amount: 6
+      conditions:
+      - key: ledger_read
+        value: yes
+        not: 0
+      - key: at:jonah
+        value: hall
+        not: 0
+    - id: c07
+      actor: clara
+      action: show_clara
+      route: 
+      from: 12
+      until: 15
+      amount: 14
+      conditions:
+      - key: owner:envelope
+        value: clara
+        not: 0
+    - id: j01
+      actor: jonah
+      action: 
+      route: hall
+      from: 0
+      until: 1
+      amount: 4
+      conditions: []
+    - id: j02
+      actor: jonah
+      action: 
+      route: archive
+      from: 2
+      until: 5
+      amount: 5
+      conditions:
+      - key: address_copied
+        value: yes
+        not: 1
+      - key: afraid
+        value: yes
+        not: 1
+      - key: owner:envelope
+        value: archive
+        not: 0
+    - id: j03
+      actor: jonah
+      action: copy
+      route: 
+      from: 2
+      until: 6
+      amount: 6
+      conditions:
+      - key: owner:envelope
+        value: archive
+        not: 0
+    - id: j04
+      actor: jonah
+      action: 
+      route: hall
+      from: 4
+      until: 15
+      amount: 4
+      conditions:
+      - key: address_copied
+        value: yes
+        not: 0
+    - id: j05
+      actor: jonah
+      action: 
+      route: garden
+      from: 2
+      until: 8
+      amount: 9
+      conditions:
+      - key: afraid
+        value: yes
+        not: 0
+    - id: j06
+      actor: jonah
+      action: refuse
+      route: 
+      from: 5
+      until: 11
+      amount: 5
+      conditions:
+      - key: asked
+        value: yes
+        not: 0
+    - id: j07
+      actor: jonah
+      action: vouch
+      route: 
+      from: 5
+      until: 11
+      amount: 9
+      conditions:
+      - key: asked
+        value: yes
+        not: 0
+      - key: trust
+        value: yes
+        not: 0
+    - id: j08
+      actor: jonah
+      action: expose
+      route: 
+      from: 5
+      until: 11
+      amount: 11
+      conditions:
+      - key: asked
+        value: yes
+        not: 0
+      - key: resentment
+        value: yes
+        not: 0
+    - id: j09
+      actor: jonah
+      action: 
+      route: hall
+      from: 10
+      until: 15
+      amount: 7
+      conditions: []
+    - id: j10
+      actor: jonah
+      action: show_jonah
+      route: 
+      from: 12
+      until: 15
+      amount: 14
+      conditions:
+      - key: owner:envelope
+        value: jonah
+        not: 0
+    - id: v01
+      actor: vale
+      action: 
+      route: archive
+      from: 3
+      until: 8
+      amount: 6
+      conditions:
+      - key: owner:envelope
+        value: archive
+        not: 0
+      - key: vale_left
+        value: yes
+        not: 1
+    - id: v02
+      actor: vale
+      action: take
+      route: 
+      from: 3
+      until: 9
+      amount: 7
+      conditions:
+      - key: owner:envelope
+        value: archive
+        not: 0
+    - id: v03
+      actor: vale
+      action: 
+      route: chapel
+      from: 5
+      until: 11
+      amount: 6
+      conditions:
+      - key: owner:envelope
+        value: vale
+        not: 0
+    - id: v04
+      actor: vale
+      action: conceal
+      route: 
+      from: 5
+      until: 11
+      amount: 7
+      conditions:
+      - key: owner:envelope
+        value: vale
+        not: 0
+    - id: v05
+      actor: vale
+      action: 
+      route: hall
+      from: 11
+      until: 15
+      amount: 8
+      conditions: []
+    - id: v06
+      actor: vale
+      action: accuse
+      route: 
+      from: 13
+      until: 15
+      amount: 9
+      conditions:
+      - key: cleared
+        value: yes
+        not: 1
+    - id: v07
+      actor: vale
+      action: accuse_clara
+      route: 
+      from: 13
+      until: 15
+      amount: 9
+      conditions:
+      - key: clara_suspected
+        value: yes
+        not: 0
+    - id: m01
+      actor: merrow
+      action: tend
+      route: 
+      from: 0
+      until: 5
+      amount: 6
+      conditions:
+      - key: owner:medicine
+        value: merrow
+        not: 0
+    - id: m02
+      actor: merrow
+      action: 
+      route: hall
+      from: 5
+      until: 15
+      amount: 5
+      conditions:
+      - key: patient_tended
+        value: yes
+        not: 0
+    - id: m03
+      actor: merrow
+      action: witness
+      route: 
+      from: 5
+      until: 10
+      amount: 8
+      conditions:
+      - key: owner:envelope
+        value: vale
+        not: 0
+      - key: at:vale
+        value: hall
+        not: 0
+    - id: m04
+      actor: merrow
+      action: testify
+      route: 
+      from: 9
+      until: 14
+      amount: 8
+      conditions:
+      - key: seen_vale
+        value: yes
+        not: 0
+    - id: m05
+      actor: merrow
+      action: defend
+      route: 
+      from: 12
+      until: 15
+      amount: 15
+      conditions:
+      - key: testimony
+        value: yes
+        not: 0
+      - key: address_copied
+        value: yes
+        not: 0
+      - key: vouched
+        value: yes
+        not: 0
+    turns: 16

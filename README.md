@@ -1,5 +1,15 @@
 # Discontinuity
 
+## Unity Prototype
+
+The current behavior-development prototype is in [`unity/`](unity/README.md), using Unity 6000.6.0f1. It includes a native playable workbench, four interconnected character tracks, zero-baseline condition scoring, sparse prior-choice adjustments, editable increments, a remaining-day forecast, and historical decision/causal inspection.
+
+Open the `unity` folder in Unity Hub and play `Assets/Scenes/Household.unity`, or run `./prototype.ps1 Play` from this repository. Build with `./prototype.ps1 Build`; verify with `./prototype.ps1 Verify`. See the [Unity README](unity/README.md) for mechanics, authoring, experiments, and limitations.
+
+The original static site remains preserved below and in `site/`. Its S3 deployment is unchanged by the Unity prototype.
+
+## Original Browser Prototype
+
 Discontinuity is a static prototype for a graphical, turn-based text adventure about many playable characters experiencing the same day.
 
 The player begins as one character, makes choices, reaches the end of the day, then begins again as another character. Previous player deviations do not replay through a separate script system. They become small score adjustments inside the same action system used by NPCs, so characters tend to bend toward the day the player gave them while still reacting to current location, timing, people present, objects, and social pressure.
