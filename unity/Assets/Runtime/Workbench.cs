@@ -15,7 +15,9 @@ namespace Discontinuity
         VisualElement root;
         SceneArt art;
         string savePath, notice = "";
-        bool sandbox, showFactors = true;
+        bool sandbox;
+        VisualElement modal;
+        Button modalReturn;
         readonly Stack<string> undo = new Stack<string>();
 
         static string Argument(string name)
@@ -88,7 +90,9 @@ namespace Discontinuity
             sim.Step(action); sim.Save.reviewPending = true; sim.Save.reviewIndex = 0;
             Persist(); Render();
         }
-        List<Event> Moments() { return sim.Experienced(sim.Save.player).Where(e => e.turn == sim.State.turn - 1).ToList(); }
+        bool Quiet(Event e) { return e.quiet || e.action == "wait"; }
+        List<Event> Moments() { return sim.Experienced(sim.Save.player).Where(e => e.turn == sim.State.turn - 1 && (!Quiet(e) || e.actor == sim.Save.player)).ToList(); }
+        List<Event> QuietMoments() { return sim.Experienced(sim.Save.player).Where(e => e.turn == sim.State.turn - 1 && Quiet(e) && e.actor != sim.Save.player).ToList(); }
         void NextMoment()
         {
             if (!sim.Save.reviewPending) return;
@@ -110,133 +114,168 @@ namespace Discontinuity
 
         void Render()
         {
-            root.Clear();
+            modal = null; root.Clear();
             string player = sim.Save.player;
             var person = sim.Data.people.Find(p => p.id == player);
             var moments = Moments();
+            if (sim.Save.reviewPending)
+            {
+                if (moments.Count == 0) sim.Save.reviewPending = false;
+                sim.Save.reviewIndex = Math.Max(0, Math.Min(sim.Save.reviewIndex, moments.Count - 1));
+            }
             var beat = sim.Save.reviewPending && moments.Count > 0 ? moments[Math.Min(sim.Save.reviewIndex, moments.Count - 1)] : null;
-            var snapshot = beat == null ? Story.Snapshot(sim.State) : beat.sceneAfter;
-            var room = sim.Data.rooms.Find(r => r.id == Story.Get(snapshot, "at:" + player));
+            var snapshot = beat == null ? Story.Snapshot(sim.State) : Story.Scene(beat, player);
+            var room = sim.Data.rooms.Find(r => r.id == (beat == null ? sim.State.Get("at:" + player) : Story.Room(beat, player)));
             int turn = beat == null ? sim.State.turn : beat.turn;
             var header = Box(root, "header");
             var brand = Box(header, "brand");
             var icon = new Image { image = Resources.Load<Texture2D>("DiscontinuityIcon"), scaleMode = ScaleMode.ScaleToFit };
             icon.AddToClassList("brand-icon"); brand.Add(icon);
             Text(brand, "Discontinuity", "brand-title");
+            Text(header, person.name + " / " + person.role + " / LIFE " + sim.Save.day, "incarnation");
             var clock = Box(header, "clock");
             Text(clock, Simulation.Clock(turn) + (beat == null ? "" : " - " + Simulation.Clock(turn + 1)), "time");
             Text(clock, "SATURDAY, 17 OCTOBER", "date");
             Button(header, "\u21b6", Undo, "icon-button", "Undo last turn").SetEnabled(undo.Count > 0);
 
             var scroll = new ScrollView(ScrollViewMode.Vertical); scroll.AddToClassList("page-scroll"); root.Add(scroll);
-            scroll.contentContainer.style.width = Length.Percent(100);
-            scroll.contentContainer.style.alignItems = Align.Center;
-            var page = Box(scroll, "page");
-            var identity = Box(page, "identity");
-            var dot = Box(identity, "identity-dot"); Color color;
-            ColorUtility.TryParseHtmlString(person.color, out color); dot.style.backgroundColor = color;
-            Text(identity, person.name.ToUpperInvariant() + " / " + person.role.ToUpperInvariant(), "eyebrow");
-            Text(identity, "LIFE " + sim.Save.day + " / TURN " + Math.Min(turn + 1, sim.Data.turns) + " OF " + sim.Data.turns, "life");
-            var title = Box(page, "scene-heading");
-            Text(title, room.name, "scene-title");
-            Text(title, beat == null ? (sim.Ended ? "NOON" : "YOUR NEXT 15 MINUTES") : "THE TURN UNFOLDS / " + (sim.Save.reviewIndex + 1) + " OF " + moments.Count, "stage-label");
-            art.Render(page, sim, room, snapshot, beat);
-            Text(page, room.description, "room-description");
-
-            var context = Box(page, "context");
+            var page = Box(scroll, "story-layout");
+            page.RegisterCallback<GeometryChangedEvent>(e => page.EnableInClassList("narrow", e.newRect.width < 850));
+            var world = Box(page, "story-world");
+            var side = Box(page, "story-side");
+            Text(world, beat != null && beat.kind == "crossing" ? sim.Name(beat.location) + " / " + sim.Name(beat.destination) : room.name, "scene-title");
+            art.Render(world, sim, room, snapshot, beat);
+            Text(world, beat != null && beat.kind == "crossing" ? "The passage between the two rooms. A brief encounter, then each of you continues." : room.description, "room-description");
+            var context = Box(world, "context");
             var carrying = sim.Data.items.Where(t => Story.Get(snapshot, "owner:" + t.id) == player).Select(t => t.name).ToList();
             Context(context, "CARRYING", carrying.Count == 0 ? "Nothing" : string.Join(", ", carrying));
-            var visible = sim.Data.items.Where(t => Story.Get(snapshot, "owner:" + t.id) == room.id).Select(t => t.name).ToList();
-            Context(context, "IN THE ROOM", visible.Count == 0 ? "No loose items" : string.Join(", ", visible));
-
+            if (beat == null || beat.kind != "crossing")
+            {
+                var visible = sim.Data.items.Where(t => Story.Get(snapshot, "owner:" + t.id) == room.id).Select(t => t.name).ToList();
+                if (visible.Count > 0) Context(context, "NEARBY", string.Join(", ", visible));
+            }
             var experienced = sim.Experienced(player);
             if (beat != null)
             {
-                var narrative = Box(page, "narrative");
-                narrative.userData = beat.id;
-                Text(narrative, beat.actor == player ? "YOU" : sim.Name(beat.actor).ToUpperInvariant(), "event-time");
+                Text(side, "TURN " + (turn + 1) + " / MOMENT " + (sim.Save.reviewIndex + 1) + " OF " + moments.Count, "eyebrow");
+                Text(side, beat.kind == "crossing" ? "Crossing paths" : Story.Moving(beat) ? "Through the house" : beat.actor == player ? "Your part in the morning" : sim.Name(beat.actor), "story-title");
+                var narrative = Box(side, "narrative"); narrative.userData = beat.id;
                 Text(narrative, Story.Text(sim, beat, player), "prose");
                 bool last = sim.Save.reviewIndex == moments.Count - 1;
-                Button(narrative, last ? (sim.Ended ? "Finish the morning" : "Continue to " + Simulation.Clock(sim.State.turn)) : "Next moment", NextMoment, "moment-button");
+                if (last && QuietMoments().Count > 0)
+                {
+                    var quiet = Box(side, "quiet-moments");
+                    Text(quiet, "ALSO WITNESSED", "caption");
+                    foreach (var e in QuietMoments())
+                    {
+                        var line = Text(quiet, sim.Name(Story.Room(e, player)) + " / " + Story.Text(sim, e, player), "quiet-copy");
+                        line.userData = e.id;
+                    }
+                }
+                Button(side, last ? (sim.Ended ? "Finish the morning" : "Continue to " + Simulation.Clock(sim.State.turn)) : "Next moment", NextMoment, "moment-button");
             }
             else if (sim.Ended)
             {
-                var ending = Box(page, "ending");
-                Text(ending, "The morning ends.", "ending-title");
-                Text(ending, "Someone else lived through it, too.", "prose");
-                Button(ending, "Wake as " + sim.Name(sim.NextIncarnation), Continue, "continue-button");
+                Text(side, "The morning ends", "story-title");
+                var verdict = experienced.LastOrDefault(e => e.action == "accuse" || e.action == "accuse_clara" || e.action == "defend" || e.action.StartsWith("show_"));
+                Text(side, verdict == null ? "The clock strikes noon. Whatever happened elsewhere, your part in this morning is over." : Story.Text(sim, verdict, player), "prose");
+                Text(side, "Someone else lived through it, too.", "concern");
+                Button(side, "Wake as " + sim.Name(sim.NextIncarnation), Continue, "continue-button");
             }
             else
             {
-                Text(page, person.concern, "concern");
-                RenderChoices(page);
+                Text(side, "TURN " + (turn + 1) + " OF " + sim.Data.turns + " / " + Simulation.Clock(turn), "eyebrow");
+                Text(side, "What will you do?", "story-title");
+                Text(side, Story.Situation(sim), "prose");
+                Text(side, Story.Concern(sim), "concern");
+                RenderChoices(side);
             }
-            RenderJournal(page, experienced);
-            if (notice != "") Text(page, notice, "notice");
+            RenderJournal(world, experienced);
+            if (notice != "") Text(side, notice, "notice");
         }
 
         void Context(VisualElement parent, string title, string value)
         {
             var group = Box(parent, "context-group"); Text(group, title, "caption"); Text(group, value, "context-value");
         }
-        void RenderChoices(VisualElement page)
+        void RenderChoices(VisualElement parent)
         {
-            var heading = Box(page, "choice-heading"); Text(heading, "YOUR CHOICE", "caption");
-            var toggle = new Toggle { text = "Decision factors", value = showFactors }; toggle.AddToClassList("factor-toggle"); heading.Add(toggle);
-            toggle.RegisterValueChangedCallback(e => { showFactors = e.newValue; Render(); });
-            Text(heading, "SCORE", "score-heading").tooltip = "Zero plus satisfied condition increments";
             foreach (var option in sim.Rank(sim.Save.player))
             {
-                var row = Box(page, "action-row");
-                var action = option.choice.id;
-                var button = Button(row, "", () => Advance(action), "choice", option.choice.label);
+                var row = Box(parent, "action-row");
+                var button = Button(row, option.choice.label, () => Advance(option.choice.id), "choice");
                 button.userData = sim.Save.player;
-                Text(button, option.choice.label, "choice-label");
-                Text(button, option.Score.ToString("0.#"), "choice-score");
-                if (!showFactors) continue;
-                foreach (var term in option.terms.Where(t => t.active)) Factor(row, term);
-                var inactive = option.terms.Where(t => !t.active).ToList();
-                if (inactive.Count > 0)
-                {
-                    var fold = Fold(row, "Inactive conditions (" + inactive.Count + ")"); fold.AddToClassList("inactive");
-                    foreach (var term in inactive) Factor(fold, term);
-                }
-            }
-            if (showFactors)
-            {
-                var records = sim.Save.guidance.Where(g => g.actor == sim.Save.player && g.until >= g.from).ToList();
-                if (records.Count > 0)
-                {
-                    var fold = Fold(page, "Your adjustments (" + records.Count + ")");
-                    foreach (var g in records)
-                    {
-                        string label = sim.Data.choices.Find(c => c.id == g.action)?.label ?? (g.action.StartsWith("move:") ? "Go to " + sim.Name(g.action.Substring(5)) : "Wait here");
-                        Text(fold, Simulation.Clock(g.from) + " / " + label + " / +" + g.amount.ToString("0.#"), "adjustment");
-                    }
-                }
+                Button details = null;
+                details = Button(row, "i", () => { modalReturn = details; OpenFactors(option); }, "inspect-button", "Decision factors: " + option.choice.label);
             }
         }
-        void Factor(VisualElement parent, Contribution term)
+        VisualElement OpenModal(string title)
         {
-            var label = Text(parent, (term.active ? "+" + term.amount.ToString("0.#") : "0") + "  " + term.id + " / " + term.description, "factor-copy");
-            label.userData = sim.Save.player;
+            foreach (var child in root.Children()) child.SetEnabled(false);
+            modal = Box(root, "modal-backdrop"); modal.focusable = true;
+            var panel = Box(modal, "factor-modal");
+            var heading = Box(panel, "modal-heading");
+            Text(heading, title, "modal-title");
+            var close = Button(heading, "\u00d7", CloseModal, "modal-close", "Close decision factors");
+            var scroll = new ScrollView(ScrollViewMode.Vertical); scroll.AddToClassList("modal-scroll"); panel.Add(scroll);
+            modal.RegisterCallback<ClickEvent>(e => { if (e.target == modal) CloseModal(); });
+            modal.RegisterCallback<KeyDownEvent>(e => { if (e.keyCode == KeyCode.Escape) { CloseModal(); e.StopPropagation(); } });
+            close.Focus();
+            return scroll;
+        }
+        void CloseModal()
+        {
+            if (modal == null) return;
+            modal.RemoveFromHierarchy(); modal = null;
+            foreach (var child in root.Children()) child.SetEnabled(true);
+            modalReturn?.Focus();
+        }
+        void OpenFactors(Option option)
+        {
+            var content = OpenModal(option.choice.label);
+            Text(content, sim.Name(sim.Save.player) + " / " + Simulation.Clock(sim.State.turn), "eyebrow");
+            Text(content, option.Score.ToString("0.#") + " = 0 + " + option.conditions.ToString("0.#") + " conditions + " + option.manual.ToString("0.#") + " adjustment", "score-equation");
+            foreach (var term in option.terms)
+            {
+                var rule = sim.Data.rules.Find(r => r.id == term.id);
+                string score = term.active ? "+" + term.amount.ToString("0.#") : "0 (inactive; potential +" + sim.Weight(rule).ToString("0.#") + ")";
+                var label = Text(content, score + " / " + term.id + "\n" + term.description, "factor-copy");
+                label.userData = sim.Save.player;
+            }
+            if (option.terms.Count == 0) Text(content, "No condition contributes to this choice right now.", "factor-copy");
+            float best = sim.Rank(sim.Save.player).Max(o => o.conditions);
+            float needed = option.conditions >= best ? 0 : best - option.conditions + 1;
+            Text(content, "Adjustment needed if chosen: +" + needed.ToString("0.#"), "adjustment");
+            var records = sim.Save.guidance.Where(g => g.actor == sim.Save.player && g.action == option.choice.id && g.until >= g.from).ToList();
+            foreach (var g in records) Text(content, "Earlier choice: +" + g.amount.ToString("0.#") + " / " + Simulation.Clock(g.from) + "-" + Simulation.Clock(g.until), "adjustment");
+            Text(content, "Resolves during " + (!string.IsNullOrEmpty(option.choice.destination) ? "simultaneous movement." : option.choice.phase == 0 ? "conversation, before departures." : option.choice.phase == 3 ? "the end of the turn." : "room activity, before departures."), "factor-copy");
+            if (string.IsNullOrEmpty(option.choice.destination)) Text(content, "Same-phase priority this turn: " + (sim.Priority(sim.Save.player) + 1) + " of " + sim.Data.people.Count + ". Priority rotates each turn.", "factor-copy");
         }
         void RenderJournal(VisualElement page, List<Event> experienced)
         {
             var earlier = experienced.Where(e => e.turn < sim.State.turn - (sim.Save.reviewPending ? 1 : 0))
                 .OrderByDescending(e => e.turn).ThenBy(e => e.id).ToList();
             if (earlier.Count == 0) return;
-            var journal = Fold(page, "Earlier today (" + earlier.Count + ")"); journal.AddToClassList("journal");
+            var journal = Fold(page, "Earlier today"); journal.AddToClassList("journal");
             foreach (var e in earlier)
             {
                 var entry = Box(journal, "journal-entry"); entry.userData = e.id;
                 Text(entry, Simulation.Clock(e.turn) + " / " + sim.Name(e.actor) + " / " + sim.Name(Story.Room(e, sim.Save.player)), "event-time");
-                Text(entry, Story.Text(sim, e, sim.Save.player), "prose");
-                if (showFactors && e.actor == sim.Save.player && e.alternatives != null)
+                Text(entry, Story.Text(sim, e, sim.Save.player), "journal-prose");
+                if (e.actor == sim.Save.player && e.alternatives != null && e.alternatives.Count > 0)
                 {
-                    var factors = Fold(entry, "Decision factors"); factors.AddToClassList("past-factors"); factors.userData = e.actor;
-                    foreach (var option in e.alternatives)
-                        Text(factors, option.label + " / " + (option.conditions + option.manual).ToString("0.#") + " = 0 + " + option.conditions.ToString("0.#") + " conditions + " + option.manual.ToString("0.#") + " adjustment", "factor-copy");
+                    var factors = Button(entry, "i", () =>
+                    {
+                        var content = OpenModal(e.label + " / " + Simulation.Clock(e.turn));
+                        var recorded = sim.Save.guidance.Find(g => g.actor == e.actor && g.action == e.action && g.from == e.turn);
+                        if (recorded != null) Text(content, "Recorded choice adjustment: +" + recorded.amount.ToString("0.#"), "adjustment");
+                        foreach (var option in e.alternatives)
+                        {
+                            var line = Text(content, option.label + " / " + (option.conditions + option.manual).ToString("0.#") + " = 0 + " + option.conditions.ToString("0.#") + " conditions + " + option.manual.ToString("0.#") + " adjustment", "factor-copy");
+                            line.userData = e.actor;
+                        }
+                    }, "inspect-button", "Past decision factors");
+                    factors.AddToClassList("past-factors"); factors.userData = e.actor;
                 }
             }
         }
@@ -245,6 +284,18 @@ namespace Discontinuity
         void Fixture(string kind)
         {
             sim = new Simulation(sim.Data); undo.Clear();
+            if (kind == "exchange")
+            {
+                sim.Step("move:hall"); sim.Step("help"); sim.Save.reviewPending = true; return;
+            }
+            if (kind == "crossing")
+            {
+                sim.Save.player = "vale";
+                while (!sim.Ended) sim.Step(sim.State.turn == 3 ? "wait" : null);
+                sim.Begin("clara");
+                sim.Step("move:hall"); sim.Step("ignore"); sim.Step("wait"); sim.Step("wait"); sim.Step("move:archive");
+                sim.Save.reviewPending = true; sim.Save.reviewIndex = Math.Max(0, Moments().FindIndex(e => e.kind == "crossing")); return;
+            }
             if (kind == "kitchen") return;
             if (kind == "garden") sim.Save.player = "jonah";
             if (kind == "chapel") sim.Save.player = "vale";
@@ -291,65 +342,69 @@ namespace Discontinuity
                 if (!ok) { Application.Quit(1); throw new Exception("UI FAILED: " + name); }
                 results.Add("PASS " + name); Debug.Log("UI PASS: " + name);
             };
-            check(sim.Save.player == "clara", "first life is Clara");
-            check(!root.Query<Button>().ToList().Any(b => b.text == "Observe" || sim.Data.people.Any(p => p.name == b.text)), "no observation or character switching controls");
-            check(!sim.ContinueAsNext(), "cannot change incarnation before the day ends");
-            check(root.Query<Button>(className: "choice").ToList().All(b => (string)b.userData == "clara"), "one action list for the current character");
-            check(root.Query<Label>(className: "factor-copy").ToList().All(l => (string)l.userData == "clara"), "only current character decision factors");
-            Click("Go to Hall"); yield return new WaitForSecondsRealtime(.2f);
-            check(sim.State.turn == 1 && sim.Save.guidance.Count == 0, "natural choice advances without adjustment");
-            check(sim.Save.reviewPending && root.Query<Button>(className: "choice").ToList().Count == 0, "resolved turn has its own story stage, without future choices");
-            check(Moments().Count == 2 && !Moments().Any(e => e.action == "tend"), "read all witnessed moments, without offscreen events");
-            check(root.Query<VisualElement>(className: "cast-person").ToList().Count == 1, "first arrival snapshot does not prematurely show Jonah");
-            Click("Next moment"); yield return null;
-            check(root.Query<VisualElement>(className: "cast-person").ToList().Count == 2 && root.Q<Label>(className: "prose").text.Contains("arrives from the Garden"), "next moment depicts Jonah's actual arrival");
-            string pending = JsonUtility.ToJson(sim.Save);
-            sim = new Simulation(sim.Data, JsonUtility.FromJson<Campaign>(pending)); Render();
-            check(sim.Save.reviewPending && sim.Save.reviewIndex == 1, "save round trip resumes the same moment");
-            int resolved = sim.State.turn; yield return ReadTurn();
-            check(sim.State.turn == resolved, "reading moments never advances the simulation");
-            Click("Give Jonah the clean cloth"); yield return new WaitForSecondsRealtime(.2f);
-            check(sim.State.Get("trust") == "yes" && sim.Save.guidance.Single().amount == 6, "manual choice records only the necessary increment");
-            check(Moments().Any(e => e.actor == "jonah" && e.action == "wait"), "waiting in the same room is a witnessed moment");
-            Click("Undo last turn"); yield return new WaitForSecondsRealtime(.2f);
-            check(sim.State.turn == 1 && sim.Save.guidance.Count == 0, "undo restores this life without switching");
-            Click("Give Jonah the clean cloth"); yield return new WaitForSecondsRealtime(.2f);
+            check(sim.Save.player == "clara" && !sim.ContinueAsNext(), "one incarnation, locked until completion");
+            check(root.Query<Button>(className: "choice").ToList().All(b => (string)b.userData == "clara"), "only your actions are offered");
+            check(root.Query<Label>(className: "factor-copy").ToList().Count == 0 && root.Query<Label>(className: "choice-score").ToList().Count == 0, "story view has no scores or factor rows");
+            string untouched = JsonUtility.ToJson(sim.Save);
+            Click("Decision factors: Go to Hall"); yield return null;
+            check(modal != null && root.Q<Label>(className: "score-equation").text.StartsWith("4 = 0 + 4"), "per-action popup shows the exact score equation");
+            check(root.Query<Label>(className: "factor-copy").ToList().Where(l => l.userData != null).All(l => (string)l.userData == "clara"), "popup never exposes another character's scores");
+            check(JsonUtility.ToJson(sim.Save) == untouched, "inspecting factors does not mutate or advance the world");
+            ScreenCapture.CaptureScreenshot(Path.GetFullPath("artifacts/factors-" + Screen.width + "x" + Screen.height + ".png"));
+            for (int frame = 0; frame < 10; frame++) yield return null;
+            Click("Close decision factors"); yield return null;
+            check(modal == null && root.Query<Label>(className: "factor-copy").ToList().Count == 0, "closing the popup restores the clean story view");
+            Click("Go to Hall"); yield return new WaitForSecondsRealtime(.1f);
+            check(sim.State.turn == 1 && sim.Save.guidance.Count == 0, "natural movement needs no adjustment");
+            check(sim.Save.reviewPending && root.Query<Button>(className: "choice").ToList().Count == 0, "movement resolves before the next choice");
+            check(root.Query<VisualElement>(className: "cast-caption").ToList().Count == 2, "simultaneous arrivals share the same room snapshot");
+            check(!sim.Experienced("clara").Any(e => e.action == "tend"), "offscreen treatment stays offscreen");
+            int resolved = sim.State.turn;
+            sim = new Simulation(sim.Data, JsonUtility.FromJson<Campaign>(JsonUtility.ToJson(sim.Save))); Render();
             yield return ReadTurn();
-            var toggle = root.Q<Toggle>(className: "factor-toggle"); toggle.value = false; yield return null;
-            check(root.Query<Label>(className: "factor-copy").ToList().Count == 0, "decision factors can be collapsed");
-            root.Q<Toggle>(className: "factor-toggle").value = true; yield return null;
+            check(sim.State.turn == resolved, "reading and restoring moments does not advance time");
+            Click("Decision factors: Give Jonah the clean cloth"); yield return null;
+            check(root.Query<Label>(className: "adjustment").ToList().Any(l => l.text.Contains("+6")), "lower-scored choice discloses its necessary adjustment");
+            Click("Close decision factors"); Click("Give Jonah the clean cloth"); yield return new WaitForSecondsRealtime(.1f);
+            check(sim.Save.guidance.Single().amount == 6, "choosing kindness records only gap plus one");
+            check((string)root.Q<Image>(className: "room-painting").userData == "Tableaux/cloth-exchange", "cloth exchange selects its exact custom scene");
+            yield return ReadTurn();
+            check(root.Query<VisualElement>(className: "journal-entry").ToList().Any(v => sim.State.events[(int)v.userData].action == "wait"), "quiet events remain in the witnessed journal");
+            Click("Undo last turn"); yield return null;
+            check(sim.State.turn == 1 && sim.Save.guidance.Count == 0, "undo restores the preceding choice and its adjustments");
+            Click("Give Jonah the clean cloth"); yield return ReadTurn();
             while (!sim.Ended)
             {
-                Click(sim.Rank(sim.Save.player)[0].choice.label); yield return new WaitForSecondsRealtime(.12f);
-                check(!sim.ContinueAsNext(), "cannot leave the life while its final moments are unread");
+                Click(sim.Rank(sim.Save.player)[0].choice.label); yield return null;
+                check(!sim.ContinueAsNext(), "cannot leave a life with unread moments");
                 yield return ReadTurn();
             }
-            check(root.Query<Button>(className: "continue-button").ToList().Count == 1, "one next incarnation at the end of the day");
-            check(root.Query<VisualElement>(className: "journal-entry").ToList().All(v => sim.Experienced("clara").Any(e => e.id == (int)v.userData)), "journal includes only witnessed events");
-            check(root.Query<Foldout>(className: "past-factors").ToList().All(f => (string)f.userData == "clara"), "journal never exposes NPC decision factors");
-            Click("Wake as Jonah"); yield return new WaitForSecondsRealtime(.2f);
-            check(sim.Save.player == "jonah" && sim.State.turn == 0 && undo.Count == 0, "next life begins only after completion and cannot undo across lives");
-            check(sim.Save.guidance.Any(g => g.actor == "clara" && g.amount == 6), "other life retains its authored choice");
-            Click("Go to Hall"); yield return new WaitForSecondsRealtime(.2f);
-            yield return ReadTurn();
-            Click("Wait here"); yield return new WaitForSecondsRealtime(.2f);
-            check(sim.State.Get("trust") == "yes" && root.Query<Label>(className: "prose").ToList().Any(l => l.text.Contains("Clara places a cloth")), "next incarnation experiences the earlier kindness");
-            foreach (string kind in new[] { "kitchen", "baseline", "archive", "gathering", "garden", "chapel" })
+            check(root.Query<Button>(className: "continue-button").ToList().Count == 1, "one next-life command after the ending");
+            check(root.Query<Button>(className: "past-factors").ToList().All(f => (string)f.userData == "clara"), "historical factors remain incarnation-only");
+            Click("Wake as Jonah"); yield return null;
+            check(sim.Save.player == "jonah" && undo.Count == 0 && sim.Save.guidance.Any(g => g.actor == "clara"), "next incarnation retains the other life without undo across lives");
+            Click("Go to Hall"); yield return ReadTurn(); Click("Wait here"); yield return null;
+            check(root.Q<Label>(className: "prose").text.Contains("Clara places a cloth"), "same illustrated event has Jonah's perspective");
+            foreach (string kind in new[] { "kitchen", "baseline", "archive", "gathering", "garden", "chapel", "exchange", "crossing" })
             {
-                Fixture(kind); Render(); yield return new WaitForSecondsRealtime(.1f);
+                Fixture(kind); Render(); yield return new WaitForSecondsRealtime(.15f);
                 var scene = root.Q<VisualElement>("illustrated-scene");
-                check(scene.worldBound.width > 100 && scene.worldBound.height > 50, kind + " scene is laid out");
-                check(root.Q<Image>(className: "room-painting").image != null, kind + " room artwork is loaded");
-                check(root.Query<Image>(className: "character-image").ToList().All(i => i.sprite != null), kind + " cast artwork is loaded");
-                if (kind == "gathering") check(root.Query<VisualElement>(className: "cast-person").ToList().Count == 4, "four people share one illustrated scene");
+                check(scene.worldBound.width > 100 && root.Q<Image>(className: "room-painting").image != null, kind + " artwork is loaded and laid out");
+                check(root.Query<VisualElement>(className: "cast-caption").ToList().Count > 0, kind + " cast is identified");
                 var buttons = root.Query<Button>(className: sim.Save.reviewPending ? "moment-button" : "choice").ToList();
-                check(buttons.Count > 0 && buttons[0].worldBound.yMax <= root.worldBound.yMax, kind + " primary action is visible without scrolling");
+                check(buttons.Count > 0 && buttons.All(b => b.worldBound.yMax <= root.worldBound.yMax), kind + " choices are visible without scrolling");
                 Directory.CreateDirectory("artifacts");
-                ScreenCapture.CaptureScreenshot(Path.GetFullPath("artifacts/story-" + kind + "-" + Screen.width + "x" + Screen.height + ".png"));
+                ScreenCapture.CaptureScreenshot(Path.GetFullPath("artifacts/adventure-" + kind + "-" + Screen.width + "x" + Screen.height + ".png"));
                 for (int frame = 0; frame < 10; frame++) yield return null;
             }
-            Directory.CreateDirectory("artifacts"); File.WriteAllLines("artifacts/ui-verification.txt", results);
-            Fixture("baseline"); Render();
+            check((string)root.Q<Image>(className: "room-painting").userData == "Tableaux/archive-crossing", "opposite travelers select the crossing tableau");
+            check(root.Query<Label>(className: "cast-name").ToList()[0].text == "Jonah" && root.Query<Label>(className: "cast-name").ToList()[1].text == "Clara (you)", "custom scene labels follow the painting's left-to-right cast order");
+            yield return ReadTurn();
+            check(sim.Rank("clara").Any(o => o.choice.id == "follow:jonah"), "crossing offers a next-turn follow choice");
+            Click(sim.Rank("clara").Find(o => o.choice.id == "follow:jonah").choice.label); yield return null;
+            check(sim.State.Get("at:clara") == "hall", "following travels toward the last observed destination");
+            File.WriteAllLines("artifacts/ui-verification.txt", results);
+            Fixture("exchange"); Render();
             if (Argument("-capture") != null) yield return Capture();
             else Application.Quit();
         }

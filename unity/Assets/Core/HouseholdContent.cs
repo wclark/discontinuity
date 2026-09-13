@@ -151,6 +151,7 @@ namespace Discontinuity
                 { "show_jonah", "Showing the envelope" },
             };
             foreach (var choice in s.choices) choice.activity = activities[choice.id];
+            RoomLife.AddMissing(s);
             return s;
         }
         static void Add(Scenario s, string id, string actor, string label, string location, string slot, int from, int until, int phase,

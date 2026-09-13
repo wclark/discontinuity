@@ -1,0 +1,16 @@
+{
+  "scenes": [
+    {
+      "signature": "hall|help|clara|jonah|clara,jonah|cloth:clara>jonah|ok",
+      "resource": "Tableaux/cloth-exchange",
+      "castOrder": ["clara", "jonah"],
+      "description": "Clara discreetly gives Jonah a clean cloth in the Hall. Exactly two people; the cloth is changing hands."
+    },
+    {
+      "signature": "hall|crossing|clara|jonah|clara,jonah|clara:hall>archive,jonah:archive>hall|ok",
+      "resource": "Tableaux/archive-crossing",
+      "castOrder": ["jonah", "clara"],
+      "description": "Clara enters the Archive while Jonah comes out into the Hall. They notice each other in passing."
+    }
+  ]
+}

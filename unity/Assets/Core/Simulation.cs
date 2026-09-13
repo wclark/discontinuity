@@ -57,8 +57,19 @@ namespace Discontinuity
             if (State.events.All(e => e.witnesses != null && e.witnesses.Count > 0 && e.sceneAfter != null && e.sceneAfter.Count > 0)) return;
             // Reconstruct old presentation snapshots in event order, without changing live facts.
             var world = Initial();
-            foreach (var e in State.events)
+            for (int index = 0; index < State.events.Count; index++)
             {
+                var e = State.events[index];
+                if (e.travelBatch)
+                {
+                    var batch = State.events.Skip(index).TakeWhile(v => v.turn == e.turn && v.travelBatch).ToList();
+                    var before = Story.Snapshot(world);
+                    foreach (var move in batch.Where(v => v.kind != "crossing" && !v.blocked)) world.Set("at:" + move.actor, move.destination);
+                    var after = Story.Snapshot(world);
+                    foreach (var move in batch) { move.sceneBefore = before; move.sceneAfter = after; TravelWitnesses(move); }
+                    index += batch.Count - 1;
+                    continue;
+                }
                 e.sceneBefore = Story.Snapshot(world);
                 e.witnesses = new List<string>(); AddWitnesses(e, world);
                 if (!e.blocked)
@@ -79,7 +90,7 @@ namespace Discontinuity
             var t = Data.items.Find(v => v.id == id); return t == null ? id : t.name;
         }
         public string Resolve(string text, string actor, string target = "")
-        { return (text ?? "").Replace("$actor", actor ?? "").Replace("$target", target ?? ""); }
+        { return (text ?? "").Replace("$actor", actor ?? "").Replace("$target", target ?? "").Replace("$previousTurn", (State.turn - 1).ToString()); }
         public bool Met(Condition c, string actor, string target = "")
         {
             bool equal = State.Get(Resolve(c.key, actor, target)) == Resolve(c.value, actor, target);
@@ -131,10 +142,20 @@ namespace Discontinuity
             string here = State.Get("at:" + actor);
             foreach (var exit in Data.rooms.Find(r => r.id == here).exits)
                 result.Add(new Choice { id = "move:" + exit, actor = actor, location = here, slot = "travel:" + here,
-                    label = "Go to " + Name(exit), phase = 2, once = false,
+                    label = "Go to " + Name(exit), destination = exit, phase = 2, once = false,
                     actorText = "You cross to the " + Name(exit) + ".", observerText = Name(actor) + " goes to the " + Name(exit) + ".",
                     effects = new List<Effect> { new Effect("at:$actor", exit) } });
-            result.Add(new Choice { id = "wait", actor = actor, location = here, slot = "travel:" + here, once = false, phase = 3,
+            foreach (var person in Data.people.Where(p => p.id != actor && State.Get("crossed:" + actor + ":" + p.id) == (State.turn - 1).ToString()))
+            {
+                string destination = State.Get("seen:" + actor + ":" + person.id);
+                if (!Data.rooms.Find(r => r.id == here).exits.Contains(destination)) continue;
+                result.Add(new Choice { id = "follow:" + person.id, actor = actor, target = person.id, location = here, destination = destination,
+                    slot = "follow:" + person.id, from = State.turn, until = State.turn, phase = 2, once = false,
+                    label = "Follow " + person.name + " toward the " + Name(destination), activity = "Following " + person.name,
+                    requires = new List<Condition> { new Condition("crossed:" + actor + ":" + person.id, "$previousTurn") },
+                    effects = new List<Effect> { new Effect("at:$actor", destination) } });
+            }
+            result.Add(new Choice { id = "wait", actor = actor, location = here, slot = "travel:" + here, once = false, quiet = true, phase = 3,
                 label = "Wait here", actorText = "You stay, listening to the house around you.", observerText = Name(actor) + " stays in the " + Name(here) + "." });
             return result;
         }
@@ -190,6 +211,11 @@ namespace Discontinuity
                 context = Context(c), location = c.location, from = turn, until = Math.Min(c.until, turn + 2), amount = best - chosen.conditions + 1 });
         }
         static void AddCause(List<int> list, int id) { if (id >= 0 && !list.Contains(id)) list.Add(id); }
+        public int Priority(string actor)
+        {
+            var order = Data.people.Select(p => p.id).OrderBy(id => id, StringComparer.Ordinal).ToList();
+            return (order.IndexOf(actor) - State.turn % order.Count + order.Count) % order.Count;
+        }
         public void Step(string humanChoice = null)
         {
             if (Ended) return;
@@ -202,12 +228,18 @@ namespace Discontinuity
                 Record(picked.choice, choices);
                 proposals[Data.people.FindIndex(p => p.id == Save.player)] = picked;
             }
-            // Everyone chooses from the same state. Conversations resolve before departures.
-            foreach (var proposal in proposals.OrderBy(o => o.choice.phase).ThenBy(o => o.choice.actor, StringComparer.Ordinal))
+            var ordered = proposals.OrderBy(o => o.choice.phase).ThenBy(o => Priority(o.choice.actor)).ToList();
+            foreach (var proposal in ordered.Where(o => string.IsNullOrEmpty(o.choice.destination) && o.choice.phase < 3)) ResolveOne(proposal, rankings);
+            MoveTogether(ordered.Where(o => !string.IsNullOrEmpty(o.choice.destination)).ToList(), rankings);
+            foreach (var proposal in ordered.Where(o => string.IsNullOrEmpty(o.choice.destination) && o.choice.phase >= 3)) ResolveOne(proposal, rankings);
+            State.turn++;
+        }
+        Event ResolveOne(Option proposal, Dictionary<string, List<Option>> rankings, bool? validAtDeparture = null)
             {
                 var c = proposal.choice;
-                bool valid = Valid(c);
+                bool valid = validAtDeparture ?? Valid(c);
                 var e = new Event { id = State.events.Count, turn = State.turn, actor = c.actor, target = c.target,
+                    kind = "action", destination = c.destination, quiet = c.quiet,
                     action = c.id, label = c.label, location = State.Get("at:" + c.actor), score = proposal.Score, manual = proposal.manual,
                     actorText = c.actorText, targetText = c.targetText, observerText = c.observerText, blocked = !valid,
                     alternatives = rankings[c.actor].Select(o => new DecisionOption { action = o.choice.id, label = o.choice.label,
@@ -237,11 +269,57 @@ namespace Discontinuity
                     e.targetText = e.observerText;
                 }
                 e.sceneAfter = Story.Snapshot(State);
-                var before = Save.previous.Find(v => v.turn == e.turn && v.actor == e.actor);
+                var before = Save.previous.Find(v => v.turn == e.turn && v.actor == e.actor && v.kind != "crossing");
                 e.changed = before != null && (before.action != e.action || before.blocked != e.blocked);
                 State.events.Add(e);
+                return e;
             }
-            State.turn++;
+        void MoveTogether(List<Option> proposals, Dictionary<string, List<Option>> rankings)
+        {
+            var before = Story.Snapshot(State);
+            var valid = proposals.ToDictionary(o => o.choice.actor, o => Valid(o.choice));
+            var moves = proposals.Where(o => valid[o.choice.actor]).Select(o => o.choice).OrderBy(c => c.actor, StringComparer.Ordinal).ToList();
+            var batch = new List<Event>();
+            for (int a = 0; a < moves.Count; a++) for (int b = a + 1; b < moves.Count; b++)
+            {
+                var first = moves[a]; var second = moves[b];
+                if (first.location != second.destination || second.location != first.destination) continue;
+                var crossing = new Event { id = State.events.Count, turn = State.turn, actor = first.actor, target = second.actor,
+                    kind = "crossing", action = "crossing", location = first.location, destination = first.destination,
+                    label = Name(first.actor) + " and " + Name(second.actor) + " cross paths", travelBatch = true,
+                    actorText = "You pass " + Name(second.actor) + " between the " + Name(first.location) + " and the " + Name(first.destination) + ". You continue to the " + Name(first.destination) + "; " + Name(second.actor) + " goes on to the " + Name(second.destination) + ".",
+                    targetText = "You pass " + Name(first.actor) + " between the " + Name(second.location) + " and the " + Name(second.destination) + ". You continue to the " + Name(second.destination) + "; " + Name(first.actor) + " goes on to the " + Name(first.destination) + "." };
+                State.events.Add(crossing); batch.Add(crossing);
+                crossing.observerText = Name(first.actor) + " and " + Name(second.actor) + " pass each other between the " + Name(first.location) + " and the " + Name(first.destination) + ".";
+                crossing.participants = moves.Where(c => c.location == first.location && c.destination == first.destination || c.location == first.destination && c.destination == first.location).Select(c => c.actor).ToList();
+                foreach (var pair in new[] { new[] { first.actor, second.actor, second.destination }, new[] { second.actor, first.actor, first.destination } })
+                {
+                    State.Set("crossed:" + pair[0] + ":" + pair[1], State.turn.ToString(), crossing.id);
+                    State.Set("seen:" + pair[0] + ":" + pair[1], pair[2], crossing.id);
+                    crossing.effects.Add("crossed:" + pair[0] + ":" + pair[1] + " = " + State.turn);
+                    crossing.effects.Add("seen:" + pair[0] + ":" + pair[1] + " = " + pair[2]);
+                }
+            }
+            foreach (var proposal in proposals)
+            {
+                var e = ResolveOne(proposal, rankings, valid[proposal.choice.actor]); e.travelBatch = true; batch.Add(e);
+            }
+            var after = Story.Snapshot(State);
+            foreach (var e in batch) { e.sceneBefore = before; e.sceneAfter = after; TravelWitnesses(e); }
+        }
+        void TravelWitnesses(Event e)
+        {
+            e.witnesses = new List<string>();
+            foreach (var person in Data.people)
+            {
+                bool sees = e.kind == "crossing" ? person.id == e.actor || person.id == e.target || e.participants.Contains(person.id) :
+                    person.id == e.actor || Story.Get(e.sceneBefore, "at:" + person.id) == e.location ||
+                    (!e.blocked && Story.Get(e.sceneAfter, "at:" + person.id) == e.destination);
+                // Opposite travelers saw the crossing, not each other's later arrival.
+                if (e.kind != "crossing" && person.id != e.actor &&
+                    Story.Get(e.sceneBefore, "at:" + person.id) == e.destination && Story.Get(e.sceneAfter, "at:" + person.id) == e.location) sees = false;
+                if (sees) e.witnesses.Add(person.id);
+            }
         }
         public List<Event> Forecast()
         {

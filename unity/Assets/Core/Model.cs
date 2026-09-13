@@ -20,6 +20,8 @@ namespace Discontinuity
     {
         public string id, actor, target, location, slot, label, actorText, targetText, observerText;
         public string activity;
+        public string destination;
+        public bool quiet;
         public int from, until = 15, phase = 1;
         public bool once = true;
         public List<Condition> requires = new List<Condition>();
@@ -74,12 +76,15 @@ namespace Discontinuity
         public int id, turn;
         public string actor, target, action, location, label, actorText, targetText, observerText;
         public string decision;
+        public string kind, destination;
+        public bool travelBatch, quiet;
         public float score, manual;
         public bool blocked, changed;
         public List<int> causes = new List<int>();
         public List<string> effects = new List<string>();
         public List<DecisionOption> alternatives = new List<DecisionOption>();
         public List<string> witnesses = new List<string>();
+        public List<string> participants = new List<string>();
         public List<Fact> sceneBefore = new List<Fact>();
         public List<Fact> sceneAfter = new List<Fact>();
         public string Text(string viewer)

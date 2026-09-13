@@ -23,6 +23,7 @@ namespace Discontinuity
                 AssetDatabase.CreateAsset(household, "Assets/Resources/Household.asset");
             }
             var panel = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/Resources/Panel.asset");
+            RoomLife.AddMissing(household.definition); EditorUtility.SetDirty(household);
             if (panel == null) { panel = ScriptableObject.CreateInstance<PanelSettings>(); AssetDatabase.CreateAsset(panel, "Assets/Resources/Panel.asset"); }
             panel.scaleMode = PanelScaleMode.ScaleWithScreenSize; panel.referenceResolution = new Vector2Int(1440, 900);
             panel.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight; panel.match = .5f;
@@ -38,8 +39,8 @@ namespace Discontinuity
             }
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Household.unity", true) };
             PlayerSettings.companyName = "Discontinuity"; PlayerSettings.productName = "Discontinuity";
-            PlayerSettings.bundleVersion = "0.3.0";
-            foreach (string path in Directory.GetFiles("Assets/Resources/Scenes", "*.png").Concat(new[] { "Assets/Resources/Characters.png" }))
+            PlayerSettings.bundleVersion = "0.4.0";
+            foreach (string path in Directory.GetFiles("Assets/Resources/Scenes", "*.png").Concat(Directory.GetFiles("Assets/Resources/Tableaux", "*.png")).Concat(new[] { "Assets/Resources/Characters.png" }))
             {
                 var textureImporter = (TextureImporter)AssetImporter.GetAtPath(path.Replace('\\', '/'));
                 textureImporter.textureType = TextureImporterType.Default;
@@ -133,8 +134,8 @@ namespace Discontinuity
             sim = new Simulation(data); sim.State.turn = 3; sim.Save.player = "clara";
             sim.State.Set("at:clara", "archive"); sim.State.Set("at:vale", "archive");
             sim.Step("take_envelope_clara");
-            check(sim.State.Get("owner:envelope") == "clara", "simultaneous claims leave exactly one item owner");
-            check(sim.State.events.Any(e => e.actor == "vale" && e.blocked), "losing item claim is revalidated and reported blocked");
+            check(sim.State.Get("owner:envelope") == "vale", "simultaneous claims leave exactly one item owner under rotating priority");
+            check(sim.State.events.Any(e => e.actor == "clara" && e.blocked), "losing item claim is revalidated and reported blocked");
             sim = new Simulation(data); sim.State.turn = 5; sim.State.Set("at:clara", "hall"); sim.State.Set("at:jonah", "hall");
             sim.State.Set("ledger_read", "yes"); sim.State.Set("address_copied", "yes"); sim.State.Set("trust", "yes"); sim.Step("ask");
             check(sim.State.Get("asked") == "yes" && sim.State.Get("answered") != "yes", "all actors decide on the same start-of-turn snapshot");
@@ -167,7 +168,7 @@ namespace Discontinuity
             check(Story.Cast(data, arrival.sceneAfter, "garden", arrival).Any(p => p.id == "jonah"), "departing figure remains visible during the departure beat");
             check(!Story.Cast(data, Story.Snapshot(sim.State), "garden").Any(p => p.id == "jonah"), "departed figure is absent from the next scene");
             var first = sim.State.events.Find(e => e.actor == "clara");
-            check(Story.Cast(data, first.sceneAfter, "hall", first).Count == 1, "event snapshot excludes a later arrival");
+            check(Story.Cast(data, first.sceneAfter, "hall", first).Count == 2, "event snapshot includes simultaneous arrivals");
             sim.Step("help");
             check(sim.Experienced("clara").Any(e => e.turn == 1 && e.actor == "jonah" && e.action == "wait"), "co-located waiting is observable");
             var help = sim.State.events.Find(e => e.action == "help");
@@ -197,6 +198,8 @@ namespace Discontinuity
                 var pixels = cast.GetPixels(i * cast.width / 4, 0, cast.width / 4, cast.height);
                 check(pixels.Any(p => p.a > .9f) && pixels.Any(p => p.a < .1f), "character column " + i + " contains a separate cutout");
             }
+            passed += MovementChecks.Run();
+            SceneCoverage.Export(data);
             string output = Path.GetFullPath("../artifacts"); Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output, "simulation-verification.txt"), passed + " checks passed.\n" + string.Join("\n", baseForecast.Select(e => Simulation.Clock(e.turn) + " " + e.actor + ": " + e.label)));
             Debug.Log("DISCONTINUITY_VERIFIED " + passed);

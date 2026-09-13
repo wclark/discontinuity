@@ -1,5 +1,28 @@
 # Illustrated Story Assets
 
+## Custom Interaction Tableaux (2026-09-13)
+
+Generated using the built-in OpenAI ImageGen tool. Both are 1536 x 1024 complete scene illustrations, using the existing Hall painting and Characters atlas as references. The originals were copied unchanged into `Assets/Resources/Tableaux/`. Selection is controlled by `SceneLibrary.json`, not by prose guessing. Most combinations still use the composited fallback.
+
+### cloth-exchange.png
+
+Project file: `Assets/Resources/Tableaux/cloth-exchange.png`. Source: `exec-2e27a7c2-e559-4d0a-9bea-82403a192612.png` in the generated-images folder documented below.
+
+Prompt:
+
+> Use case: illustration-story. Create a complete dramatic story tableau for the game Discontinuity, landscape 3:2, 1536x1024. Image 1 is the environment reference: keep its Victorian hall architecture, sage walls, staircase and cool morning light, but choose a closer cinematic camera. Image 2 is the cast identity reference: use ONLY Clara (first woman, green dress ivory apron red neck scarf) and Jonah (second figure, auburn hair blue waistcoat rolled ivory sleeves satchel). Preserve their faces and clothing. Depict Clara discreetly putting a small clean white cloth into Jonah's open hand to help him hide the black ink stain on his cuff. Their bodies turn toward each other, hands and cloth clearly interacting, Jonah's guarded expression softens. A legible, intimate physical action, not two static standing cutouts. Medium-wide framing showing both from knees up and the recognizable hall behind, evenly lit painterly storybook realism, realistic hands, fine brush texture. Exactly two people. No Father Vale or doctor, no bystanders. No blue envelope, ledger, text, UI, border, labels or lettering. This is one coherent pre-rendered adventure-game scene, no panels. Do not place the cloth in the background; its exchange is the central action.
+
+### archive-crossing.png
+
+Project file: `Assets/Resources/Tableaux/archive-crossing.png`. Source: `exec-45ee45cc-ca73-4976-b865-a10c3b610d4d.png` in the generated-images folder documented below.
+
+Prompt:
+
+> Use case: illustration-story. Create a complete cinematic adventure-game tableau, landscape 3:2, 1536x1024, for Discontinuity. First reference is the manor Hall, second is cast identity. Use ONLY Clara (first figure, brown loose bun, green dress, ivory apron, red scarf) and Jonah (second figure, auburn hair, blue waistcoat, rolled ivory sleeves with ink stain, brown shoulder satchel). Keep their faces and clothing consistent. They pass each other going OPPOSITE directions at the open doorway connecting the sage-green Hall to the book-lined Archive. Clara walks toward the book-lined Archive, Jonah walks out toward the Hall; both turn their heads briefly to notice each other, a clear fleeting crossing, neither blocking or touching the other. View from the Hall at an oblique angle across the open doorway, show enough Hall wall and Archive shelves to make both endpoints legible. Body poses must communicate opposite travel, not a conversation or posed lineup. Full or three-quarter bodies, expressive hand-painted realistic storybook style matching the references, soft readable morning light, natural anatomy, coherent shadows. Exactly two people, no bystanders, no doctor or priest, no text, UI or borders. No blue envelope, loose ledger, medicine, or cloth exchange. This is a reusable illustration of a neutral crossing, no fear, cruelty, or secret knowledge implied.
+
+
+## Original Scene Assets (2026-09-12)
+
 Generated with OpenAI ImageGen for this prototype on 2026-09-12. These are original generated game assets, not photographs of a real place or people.
 
 The five room backgrounds contain no named characters or movable plot objects. The four figures are independent transparent cutouts, composited from the atlas at runtime. Their location, highlighted actor, and activity caption come from the exact resolved event. Departures retain a fading figure for that moment only. The first art pass uses standing figures, not action-specific poses or full animation. The prose remains authoritative for physical actions. The groundskeeper and background household crowd are currently prose-only.

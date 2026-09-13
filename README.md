@@ -2,7 +2,7 @@
 
 ## Unity Prototype
 
-The current native prototype is in [`unity/`](unity/README.md), using Unity 6000.6.0f1. Play one complete incarnation at a time, beginning as Clara. Choose an action, then read the turn as a sequence of witnessed moments in five illustrated rooms. Separate character figures show who is present and whose action is unfolding. Your own ranked choices and decision factors return for the next turn. Condition scoring and sparse prior-choice adjustments still drive all four interconnected lives in the background.
+The current native prototype is in [`unity/`](unity/README.md), using Unity 6000.6.0f1. Play one incarnation at a time in an illustrated, choice-driven story. Movement is simultaneous, crossing travelers notice each other, and reactions become choices on the next turn. Household tasks fill the quieter minutes. The story screen shows the scene, situation and actions; scoring is behind each action's info button. Two complete interaction illustrations start an exact-match scene library, with a bounded discovery and generation queue for further artwork. Condition scoring and sparse prior-choice adjustments still drive all four lives.
 
 Open the `unity` folder in Unity Hub and play `Assets/Scenes/Household.unity`, or run `./prototype.ps1 Play` from this repository. Build with `./prototype.ps1 Build`; verify with `./prototype.ps1 Verify`. After building, `./install-desktop.ps1` creates a desktop shortcut with the custom blue-envelope icon. See the [Unity README](unity/README.md) for mechanics, authoring, and limitations.
 

@@ -97,7 +97,6 @@ MonoBehaviour:
     facts: []
     choices:
     - id: ignore
-      activity: Passing in silence
       actor: clara
       target: jonah
       location: hall
@@ -106,6 +105,9 @@ MonoBehaviour:
       actorText: You notice Jonah hiding the ink on his cuff. You let him have his silence.
       targetText: Clara notices the ink. She walks past without a word.
       observerText: Clara passes Jonah without speaking.
+      activity: Passing in silence
+      destination:
+      quiet: 0
       from: 1
       until: 4
       phase: 0
@@ -118,7 +120,6 @@ MonoBehaviour:
       - key: cuff
         value: ignored
     - id: help
-      activity: Offering a clean cloth
       actor: clara
       target: jonah
       location: hall
@@ -127,6 +128,9 @@ MonoBehaviour:
       actorText: You turn your shoulder to the room and pass Jonah your cloth. No one else needs to notice.
       targetText: Clara places a cloth in your hand, hiding your stained cuff from the room. It is a small kindness, and not a small thing.
       observerText: Clara quietly gives Jonah a clean cloth.
+      activity: Offering a clean cloth
+      destination:
+      quiet: 0
       from: 1
       until: 4
       phase: 0
@@ -146,7 +150,6 @@ MonoBehaviour:
       - key: trust
         value: yes
     - id: mock
-      activity: Mocking Jonah's cuff
       actor: clara
       target: jonah
       location: hall
@@ -155,6 +158,9 @@ MonoBehaviour:
       actorText: You look at Jonah's cuff just long enough for the footman to laugh. Jonah stops trying to hide it.
       targetText: Clara looks at the ink on your cuff. The footman laughs before you can cover it. You will have to ask this house for kindness again.
       observerText: Clara makes Jonah's stained cuff the room's entertainment.
+      activity: Mocking Jonah's cuff
+      destination:
+      quiet: 0
       from: 1
       until: 4
       phase: 0
@@ -169,7 +175,6 @@ MonoBehaviour:
       - key: resentment
         value: yes
     - id: threaten
-      activity: Warning Jonah away
       actor: clara
       target: jonah
       location: hall
@@ -178,6 +183,9 @@ MonoBehaviour:
       actorText: You tell Jonah that Vale is looking for someone to blame. He hears the warning as a threat.
       targetText: Clara says Vale needs someone to blame. Suddenly your harmless errand feels very dangerous.
       observerText: Clara warns Jonah away from the Archive.
+      activity: Warning Jonah away
+      destination:
+      quiet: 0
       from: 1
       until: 4
       phase: 0
@@ -192,15 +200,17 @@ MonoBehaviour:
       - key: afraid
         value: yes
     - id: read_ledger
-      activity: Reading the wage entries
       actor: clara
-      target: 
+      target:
       location: archive
       slot: ledger
       label: Read the missing wage entries
       actorText: Three months of wages have been diverted to the parish. You close the ledger gently, as though the book could feel shame.
-      targetText: 
+      targetText:
       observerText: Clara finds diverted wages in the estate ledger.
+      activity: Reading the wage entries
+      destination:
+      quiet: 0
       from: 2
       until: 8
       phase: 1
@@ -213,15 +223,17 @@ MonoBehaviour:
       - key: ledger_read
         value: yes
     - id: take_envelope_clara
-      activity: Taking the envelope
       actor: clara
-      target: 
+      target:
       location: archive
       slot: envelope
       label: Take the blue envelope
       actorText: You tuck the envelope beneath your apron. The paper is stiff against your ribs.
-      targetText: 
+      targetText:
       observerText: Clara takes the blue envelope.
+      activity: Taking the envelope
+      destination:
+      quiet: 0
       from: 0
       until: 10
       phase: 1
@@ -234,7 +246,6 @@ MonoBehaviour:
       - key: owner:envelope
         value: clara
     - id: ask
-      activity: Asking Jonah for support
       actor: clara
       target: jonah
       location: hall
@@ -243,6 +254,9 @@ MonoBehaviour:
       actorText: You ask Jonah to confirm what he saw in the Archive. Your future rests, briefly, in someone else's hands.
       targetText: Clara needs you to tell the room she was reading the accounts, not stealing them. You think of her face this morning.
       observerText: Clara asks Jonah to support her account.
+      activity: Asking Jonah for support
+      destination:
+      quiet: 0
       from: 5
       until: 10
       phase: 0
@@ -258,7 +272,6 @@ MonoBehaviour:
       - key: asked
         value: yes
     - id: apologize
-      activity: Apologizing to Jonah
       actor: clara
       target: jonah
       location: hall
@@ -267,6 +280,9 @@ MonoBehaviour:
       actorText: You say you were cruel. No excuse follows it. Jonah looks at you for a long moment.
       targetText: Clara apologizes without asking anything in return. You do not forgive everything. You do listen.
       observerText: Clara apologizes to Jonah.
+      activity: Apologizing to Jonah
+      destination:
+      quiet: 0
       from: 4
       until: 10
       phase: 0
@@ -284,15 +300,17 @@ MonoBehaviour:
       - key: trust
         value: yes
     - id: copy
-      activity: Copying the address
       actor: jonah
-      target: 
+      target:
       location: archive
       slot: errand
       label: Copy the envelope's address
       actorText: The envelope is addressed to the parish, not the estate. You copy the address exactly. A printer knows what a name can prove.
-      targetText: 
+      targetText:
       observerText: Jonah copies the parish address from the envelope.
+      activity: Copying the address
+      destination:
+      quiet: 0
       from: 2
       until: 6
       phase: 1
@@ -305,15 +323,17 @@ MonoBehaviour:
       - key: address_copied
         value: yes
     - id: take_envelope_jonah
-      activity: Pocketing the envelope
       actor: jonah
-      target: 
+      target:
       location: archive
       slot: errand
       label: Put the envelope in your satchel
       actorText: You put the envelope in your satchel. The errand has become something less innocent.
-      targetText: 
+      targetText:
       observerText: Jonah puts the envelope in his satchel.
+      activity: Pocketing the envelope
+      destination:
+      quiet: 0
       from: 2
       until: 6
       phase: 1
@@ -326,7 +346,6 @@ MonoBehaviour:
       - key: owner:envelope
         value: jonah
     - id: vouch
-      activity: Speaking for Clara
       actor: jonah
       target: clara
       location: hall
@@ -335,6 +354,9 @@ MonoBehaviour:
       actorText: You say Clara was reading the accounts. Your voice steadies when she turns toward you.
       targetText: Jonah speaks for you. You remember how little it cost to hide the ink on his cuff.
       observerText: Jonah supports Clara's account in front of witnesses.
+      activity: Speaking for Clara
+      destination:
+      quiet: 0
       from: 5
       until: 11
       phase: 0
@@ -352,7 +374,6 @@ MonoBehaviour:
       - key: answered
         value: yes
     - id: refuse
-      activity: Declining to help
       actor: jonah
       target: clara
       location: hall
@@ -361,6 +382,9 @@ MonoBehaviour:
       actorText: You say you cannot be certain. It is safer. You can hear how much that costs Clara.
       targetText: Jonah says he cannot help. Around you, the room grows interested.
       observerText: Jonah declines to support Clara.
+      activity: Declining to help
+      destination:
+      quiet: 0
       from: 5
       until: 11
       phase: 0
@@ -376,7 +400,6 @@ MonoBehaviour:
       - key: answered
         value: yes
     - id: expose
-      activity: Casting suspicion on Clara
       actor: jonah
       target: clara
       location: hall
@@ -385,6 +408,9 @@ MonoBehaviour:
       actorText: You tell them Clara was asking about the accounts early. You keep your voice polite. That makes it worse.
       targetText: Jonah repeats your questions to the room. You hear your morning joke in the space between his words.
       observerText: Jonah draws attention to Clara's interest in the accounts.
+      activity: Casting suspicion on Clara
+      destination:
+      quiet: 0
       from: 5
       until: 11
       phase: 0
@@ -402,15 +428,17 @@ MonoBehaviour:
       - key: clara_suspected
         value: yes
     - id: take
-      activity: Removing the envelope
       actor: vale
-      target: 
+      target:
       location: archive
       slot: envelope
       label: Remove the envelope
       actorText: You slip the envelope into your prayer book. You have told yourself this is protection.
-      targetText: 
+      targetText:
       observerText: Father Vale removes the blue envelope from the Archive.
+      activity: Removing the envelope
+      destination:
+      quiet: 0
       from: 3
       until: 9
       phase: 1
@@ -423,15 +451,17 @@ MonoBehaviour:
       - key: owner:envelope
         value: vale
     - id: leave
-      activity: Leaving the envelope
       actor: vale
-      target: 
+      target:
       location: archive
       slot: envelope
       label: Leave the envelope where it is
       actorText: You leave the paper on the desk. For once, let the accounts speak for themselves.
-      targetText: 
+      targetText:
       observerText: Father Vale leaves the envelope on the desk.
+      activity: Leaving the envelope
+      destination:
+      quiet: 0
       from: 3
       until: 9
       phase: 1
@@ -444,15 +474,17 @@ MonoBehaviour:
       - key: vale_left
         value: yes
     - id: conceal
-      activity: Hiding the envelope
       actor: vale
-      target: 
+      target:
       location: chapel
       slot: conceal
       label: Hide the envelope in the lectern
       actorText: The lectern closes over the envelope. The house will have to accuse someone without it.
-      targetText: 
+      targetText:
       observerText: Father Vale conceals the envelope in the lectern.
+      activity: Hiding the envelope
+      destination:
+      quiet: 0
       from: 5
       until: 11
       phase: 1
@@ -465,15 +497,17 @@ MonoBehaviour:
       - key: owner:envelope
         value: lectern
     - id: tend
-      activity: Tending the groundskeeper
       actor: merrow
-      target: 
+      target:
       location: garden
       slot: patient
       label: Dress the groundskeeper's injury
       actorText: The wound is clean. You leave the patient resting beneath the awning.
-      targetText: 
+      targetText:
       observerText: Dr. Merrow tends the injured groundskeeper.
+      activity: Tending the groundskeeper
+      destination:
+      quiet: 0
       from: 0
       until: 5
       phase: 1
@@ -486,7 +520,6 @@ MonoBehaviour:
       - key: patient_tended
         value: yes
     - id: witness
-      activity: Noticing the blue paper
       actor: merrow
       target: vale
       location: hall
@@ -495,6 +528,9 @@ MonoBehaviour:
       actorText: Blue paper shows between Vale's prayer-book pages. You remember the color, and the time.
       targetText: Merrow's eyes rest on your prayer book. A corner of blue paper is showing.
       observerText: Dr. Merrow sees the blue envelope in Vale's prayer book.
+      activity: Noticing the blue paper
+      destination:
+      quiet: 0
       from: 5
       until: 10
       phase: 0
@@ -510,15 +546,17 @@ MonoBehaviour:
       - key: seen_vale
         value: yes
     - id: testify
-      activity: Reporting what she saw
       actor: merrow
-      target: 
+      target:
       location: hall
       slot: testimony
       label: Tell the Hall what you saw
       actorText: 'You tell the room exactly what you saw: blue paper, Vale''s book, a quarter to ten. No speculation.'
-      targetText: 
+      targetText:
       observerText: Dr. Merrow tells the Hall that Vale carried the envelope.
+      activity: Reporting what she saw
+      destination:
+      quiet: 0
       from: 9
       until: 14
       phase: 0
@@ -531,7 +569,6 @@ MonoBehaviour:
       - key: testimony
         value: yes
     - id: accuse
-      activity: Accusing Jonah
       actor: vale
       target: jonah
       location: hall
@@ -540,6 +577,9 @@ MonoBehaviour:
       actorText: You say Jonah's name. The room has been waiting for a name, not for proof.
       targetText: Vale names you. You think of the address you copied, and of everyone who might speak.
       observerText: Father Vale accuses Jonah of stealing the blue envelope.
+      activity: Accusing Jonah
+      destination:
+      quiet: 0
       from: 13
       until: 15
       phase: 0
@@ -558,7 +598,6 @@ MonoBehaviour:
       - key: accused
         value: jonah
     - id: accuse_clara
-      activity: Accusing Clara
       actor: vale
       target: clara
       location: hall
@@ -567,6 +606,9 @@ MonoBehaviour:
       actorText: Jonah has given you a different name to use. You let his anger do your work.
       targetText: Vale names you, repeating Jonah's words. A joke at breakfast has traveled farther than you intended.
       observerText: Father Vale turns Jonah's suspicion into an accusation against Clara.
+      activity: Accusing Clara
+      destination:
+      quiet: 0
       from: 13
       until: 15
       phase: 0
@@ -585,15 +627,17 @@ MonoBehaviour:
       - key: accused
         value: clara
     - id: defend
-      activity: Joining the evidence
       actor: merrow
-      target: 
+      target:
       location: hall
       slot: verdict
       label: Join the evidence together
       actorText: 'Jonah''s address, Clara''s account, your sighting: three ordinary acts make a story Vale cannot divide.'
-      targetText: 
+      targetText:
       observerText: Merrow joins Jonah's address, Clara's corroborated account, and the sighting. The accusation fails.
+      activity: Joining the evidence
+      destination:
+      quiet: 0
       from: 12
       until: 15
       phase: 0
@@ -618,15 +662,17 @@ MonoBehaviour:
       - key: cleared
         value: yes
     - id: show_clara
-      activity: Showing the envelope
       actor: clara
-      target: 
+      target:
       location: hall
       slot: verdict
       label: Show the household the envelope
       actorText: You place the blue envelope on the table. The missing wages have an address. No one can pretend otherwise now.
-      targetText: 
+      targetText:
       observerText: The envelope is opened in front of the household. The diverted wages are exposed.
+      activity: Showing the envelope
+      destination:
+      quiet: 0
       from: 12
       until: 15
       phase: 0
@@ -641,15 +687,17 @@ MonoBehaviour:
       - key: owner:envelope
         value: hall
     - id: show_jonah
-      activity: Showing the envelope
       actor: jonah
-      target: 
+      target:
       location: hall
       slot: verdict
       label: Show the household the envelope
       actorText: You place the blue envelope on the table. The missing wages have an address. No one can pretend otherwise now.
-      targetText: 
+      targetText:
       observerText: The envelope is opened in front of the household. The diverted wages are exposed.
+      activity: Showing the envelope
+      destination:
+      quiet: 0
       from: 12
       until: 15
       phase: 0
@@ -663,10 +711,1045 @@ MonoBehaviour:
         value: yes
       - key: owner:envelope
         value: hall
+    - id: c20_0
+      actor: clara
+      target:
+      location: hall
+      slot: c20_0
+      label: Read the notice for the accounts reading
+      actorText: The notice promises an account of every wage. Your brother's name ought to be among them.
+      targetText:
+      observerText: Clara reads the notice beside the clock.
+      activity: Read the notice for the accounts reading
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_0
+        value: yes
+        not: 1
+      effects:
+      - key: done:c20_0
+        value: yes
+    - id: c20_1
+      actor: clara
+      target:
+      location: hall
+      slot: c20_1
+      label: Set out chairs for the reading
+      actorText: You leave a clear aisle to the table. Whoever speaks will have to face the room.
+      targetText:
+      observerText: Clara arranges chairs around the accounts table.
+      activity: Set out chairs for the reading
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_1
+        value: yes
+        not: 1
+      - key: done:c20_0
+        value: yes
+        not: 0
+      effects:
+      - key: done:c20_1
+        value: yes
+    - id: c20_2
+      actor: clara
+      target:
+      location: hall
+      slot: c20_2
+      label: Check the names on the wage list
+      actorText: Your brother's name is there. The space for the amount is empty.
+      targetText:
+      observerText: Clara traces a line on the wage list with her finger.
+      activity: Check the names on the wage list
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_2
+        value: yes
+        not: 1
+      - key: done:c20_1
+        value: yes
+        not: 0
+      effects:
+      - key: done:c20_2
+        value: yes
+    - id: c20_3
+      actor: clara
+      target:
+      location: hall
+      slot: c20_3
+      label: Prepare cups for the household
+      actorText: You line up the cups, giving your hands something steady to do.
+      targetText:
+      observerText: Clara sets cups beside the chairs.
+      activity: Prepare cups for the household
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_3
+        value: yes
+        not: 1
+      - key: done:c20_2
+        value: yes
+        not: 0
+      effects:
+      - key: done:c20_3
+        value: yes
+    - id: c20_4
+      actor: clara
+      target:
+      location: hall
+      slot: c20_4
+      label: Write down the missing wage entry
+      actorText: You copy the blank entry before anyone can tell you that you misread it.
+      targetText:
+      observerText: Clara makes a short note about the accounts.
+      activity: Write down the missing wage entry
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_4
+        value: yes
+        not: 1
+      - key: done:c20_3
+        value: yes
+        not: 0
+      effects:
+      - key: done:c20_4
+        value: yes
+    - id: c20_5
+      actor: clara
+      target:
+      location: hall
+      slot: c20_5
+      label: Place your note by the reading table
+      actorText: The note lies where you can reach it when the reading begins.
+      targetText:
+      observerText: Clara places a folded note beside her chair.
+      activity: Place your note by the reading table
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_5
+        value: yes
+        not: 1
+      - key: done:c20_4
+        value: yes
+        not: 0
+      effects:
+      - key: done:c20_5
+        value: yes
+    - id: c20_6
+      actor: clara
+      target:
+      location: hall
+      slot: c20_6
+      label: Open the curtains for the reading
+      actorText: Light reaches the table. No one will have to read these accounts in shadow.
+      targetText:
+      observerText: Clara opens the Hall curtains.
+      activity: Open the curtains for the reading
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_6
+        value: yes
+        not: 1
+      - key: done:c20_5
+        value: yes
+        not: 0
+      effects:
+      - key: done:c20_6
+        value: yes
+    - id: c20_7
+      actor: clara
+      target:
+      location: hall
+      slot: c20_7
+      label: Take a place near the accounts table
+      actorText: You choose a place where your voice will carry.
+      targetText:
+      observerText: Clara takes a place beside the accounts table.
+      activity: Take a place near the accounts table
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_7
+        value: yes
+        not: 1
+      - key: done:c20_6
+        value: yes
+        not: 0
+      effects:
+      - key: done:c20_7
+        value: yes
+    - id: j20_0
+      actor: jonah
+      target:
+      location: hall
+      slot: j20_0
+      label: Check the printer's delivery slip
+      actorText: The errand was simple on paper. Copy the address, bring it back.
+      targetText:
+      observerText: Jonah checks the slip tucked in his satchel.
+      activity: Check the printer's delivery slip
+      destination:
+      quiet: 1
+      from: 5
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_0
+        value: yes
+        not: 1
+      effects:
+      - key: done:j20_0
+        value: yes
+    - id: j20_1
+      actor: jonah
+      target:
+      location: hall
+      slot: j20_1
+      label: Put your delivery papers in order
+      actorText: You smooth the folded paper without showing it to the room.
+      targetText:
+      observerText: Jonah straightens the papers in his satchel.
+      activity: Put your delivery papers in order
+      destination:
+      quiet: 1
+      from: 5
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_1
+        value: yes
+        not: 1
+      - key: done:j20_0
+        value: yes
+        not: 0
+      effects:
+      - key: done:j20_1
+        value: yes
+    - id: j20_2
+      actor: jonah
+      target:
+      location: hall
+      slot: j20_2
+      label: Read the estate's announcement
+      actorText: The announcement names the time of the reading, but not why a printer was needed.
+      targetText:
+      observerText: Jonah reads the announcement by the clock.
+      activity: Read the estate's announcement
+      destination:
+      quiet: 1
+      from: 5
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_2
+        value: yes
+        not: 1
+      - key: done:j20_1
+        value: yes
+        not: 0
+      effects:
+      - key: done:j20_2
+        value: yes
+    - id: j20_3
+      actor: jonah
+      target:
+      location: hall
+      slot: j20_3
+      label: Check your ink-stained cuff
+      actorText: The stain is dry now. You fold the edge inward.
+      targetText:
+      observerText: Jonah folds his stained cuff inward.
+      activity: Check your ink-stained cuff
+      destination:
+      quiet: 1
+      from: 5
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_3
+        value: yes
+        not: 1
+      - key: done:j20_2
+        value: yes
+        not: 0
+      effects:
+      - key: done:j20_3
+        value: yes
+    - id: j20_4
+      actor: jonah
+      target:
+      location: hall
+      slot: j20_4
+      label: Sharpen your pencil
+      actorText: A small task makes the minutes less conspicuous.
+      targetText:
+      observerText: Jonah sharpens his pencil over a scrap of paper.
+      activity: Sharpen your pencil
+      destination:
+      quiet: 1
+      from: 5
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_4
+        value: yes
+        not: 1
+      - key: done:j20_3
+        value: yes
+        not: 0
+      effects:
+      - key: done:j20_4
+        value: yes
+    - id: j20_5
+      actor: jonah
+      target:
+      location: hall
+      slot: j20_5
+      label: Pack the delivery papers
+      actorText: You put the papers together so nothing can be mistaken for something you took.
+      targetText:
+      observerText: Jonah carefully packs his delivery papers.
+      activity: Pack the delivery papers
+      destination:
+      quiet: 1
+      from: 5
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_5
+        value: yes
+        not: 1
+      - key: done:j20_4
+        value: yes
+        not: 0
+      effects:
+      - key: done:j20_5
+        value: yes
+    - id: j20_6
+      actor: jonah
+      target:
+      location: hall
+      slot: j20_6
+      label: Fasten your satchel
+      actorText: You close the buckle and keep the bag beside you.
+      targetText:
+      observerText: Jonah fastens the buckle of his satchel.
+      activity: Fasten your satchel
+      destination:
+      quiet: 1
+      from: 5
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_6
+        value: yes
+        not: 1
+      - key: done:j20_5
+        value: yes
+        not: 0
+      effects:
+      - key: done:j20_6
+        value: yes
+    - id: j20_7
+      actor: jonah
+      target:
+      location: hall
+      slot: j20_7
+      label: Take a place by the Hall door
+      actorText: From here you can hear the reading, and see the way out.
+      targetText:
+      observerText: Jonah takes a place near the door.
+      activity: Take a place by the Hall door
+      destination:
+      quiet: 1
+      from: 5
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_7
+        value: yes
+        not: 1
+      - key: done:j20_6
+        value: yes
+        not: 0
+      effects:
+      - key: done:j20_7
+        value: yes
+    - id: v20_0
+      actor: vale
+      target:
+      location: chapel
+      slot: v20_0
+      label: Straighten the service books
+      actorText: Each book returns to its proper place. Order is a small reassurance.
+      targetText:
+      observerText: Father Vale straightens the service books.
+      activity: Straighten the service books
+      destination:
+      quiet: 1
+      from: 0
+      until: 8
+      phase: 1
+      once: 1
+      requires:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v20_0
+        value: yes
+        not: 1
+      effects:
+      - key: done:v20_0
+        value: yes
+    - id: v20_1
+      actor: vale
+      target:
+      location: chapel
+      slot: v20_1
+      label: Light the morning candle
+      actorText: The taper catches. You watch until the flame steadies.
+      targetText:
+      observerText: Father Vale lights a candle beside the lectern.
+      activity: Light the morning candle
+      destination:
+      quiet: 1
+      from: 0
+      until: 8
+      phase: 1
+      once: 1
+      requires:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v20_1
+        value: yes
+        not: 1
+      - key: done:v20_0
+        value: yes
+        not: 0
+      effects:
+      - key: done:v20_1
+        value: yes
+    - id: v20_2
+      actor: vale
+      target:
+      location: chapel
+      slot: v20_2
+      label: Review the order of service
+      actorText: The familiar lines hold your attention for a few quiet minutes.
+      targetText:
+      observerText: Father Vale reviews the order of service.
+      activity: Review the order of service
+      destination:
+      quiet: 1
+      from: 0
+      until: 8
+      phase: 1
+      once: 1
+      requires:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v20_2
+        value: yes
+        not: 1
+      - key: done:v20_1
+        value: yes
+        not: 0
+      effects:
+      - key: done:v20_2
+        value: yes
+    - id: v30_0
+      actor: vale
+      target:
+      location: chapel
+      slot: v30_0
+      label: Put the service papers away
+      actorText: You square the papers and close the cover over them.
+      targetText:
+      observerText: Father Vale puts the service papers away.
+      activity: Put the service papers away
+      destination:
+      quiet: 1
+      from: 9
+      until: 10
+      phase: 1
+      once: 1
+      requires:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v30_0
+        value: yes
+        not: 1
+      effects:
+      - key: done:v30_0
+        value: yes
+    - id: v30_1
+      actor: vale
+      target:
+      location: chapel
+      slot: v30_1
+      label: Check the chapel before leaving
+      actorText: You check the windows and the aisle before turning toward the door.
+      targetText:
+      observerText: Father Vale checks the chapel before leaving.
+      activity: Check the chapel before leaving
+      destination:
+      quiet: 1
+      from: 9
+      until: 10
+      phase: 1
+      once: 1
+      requires:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v30_1
+        value: yes
+        not: 1
+      - key: done:v30_0
+        value: yes
+        not: 0
+      effects:
+      - key: done:v30_1
+        value: yes
+    - id: v40_0
+      actor: vale
+      target:
+      location: hall
+      slot: v40_0
+      label: Arrange the papers for the reading
+      actorText: You place the account sheets in the order you mean to read them.
+      targetText:
+      observerText: Father Vale orders the papers on the reading table.
+      activity: Arrange the papers for the reading
+      destination:
+      quiet: 1
+      from: 12
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:vale
+        value: hall
+        not: 0
+      - key: done:v40_0
+        value: yes
+        not: 1
+      effects:
+      - key: done:v40_0
+        value: yes
+    - id: v40_1
+      actor: vale
+      target:
+      location: hall
+      slot: v40_1
+      label: Mark your place in the accounts
+      actorText: Your finger finds the next line. The room has not yet emptied.
+      targetText:
+      observerText: Father Vale marks a place in the accounts.
+      activity: Mark your place in the accounts
+      destination:
+      quiet: 1
+      from: 12
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:vale
+        value: hall
+        not: 0
+      - key: done:v40_1
+        value: yes
+        not: 1
+      - key: done:v40_0
+        value: yes
+        not: 0
+      effects:
+      - key: done:v40_1
+        value: yes
+    - id: v40_2
+      actor: vale
+      target:
+      location: hall
+      slot: v40_2
+      label: Gather the account sheets
+      actorText: You gather the loose sheets without turning your back on the room.
+      targetText:
+      observerText: Father Vale gathers the account sheets.
+      activity: Gather the account sheets
+      destination:
+      quiet: 1
+      from: 12
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:vale
+        value: hall
+        not: 0
+      - key: done:v40_2
+        value: yes
+        not: 1
+      - key: done:v40_1
+        value: yes
+        not: 0
+      effects:
+      - key: done:v40_2
+        value: yes
+    - id: m20_0
+      actor: merrow
+      target:
+      location: garden
+      slot: m20_0
+      label: Wash after dressing the wound
+      actorText: Cold water takes the last traces of the dressing from your hands.
+      targetText:
+      observerText: Dr. Merrow washes her hands beside the awning.
+      activity: Wash after dressing the wound
+      destination:
+      quiet: 1
+      from: 1
+      until: 4
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: garden
+        not: 0
+      - key: done:m20_0
+        value: yes
+        not: 1
+      - key: patient_tended
+        value: yes
+        not: 0
+      effects:
+      - key: done:m20_0
+        value: yes
+    - id: m20_1
+      actor: merrow
+      target:
+      location: garden
+      slot: m20_1
+      label: Record the patient's injury
+      actorText: You note the time and the condition of the wound.
+      targetText:
+      observerText: Dr. Merrow records the injury in her notebook.
+      activity: Record the patient's injury
+      destination:
+      quiet: 1
+      from: 1
+      until: 4
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: garden
+        not: 0
+      - key: done:m20_1
+        value: yes
+        not: 1
+      - key: done:m20_0
+        value: yes
+        not: 0
+      - key: patient_tended
+        value: yes
+        not: 0
+      effects:
+      - key: done:m20_1
+        value: yes
+    - id: m20_2
+      actor: merrow
+      target:
+      location: garden
+      slot: m20_2
+      label: Check the new bandage
+      actorText: The dressing is holding. The groundskeeper can rest here a little longer.
+      targetText:
+      observerText: Dr. Merrow checks the groundskeeper's bandage.
+      activity: Check the new bandage
+      destination:
+      quiet: 1
+      from: 1
+      until: 4
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: garden
+        not: 0
+      - key: done:m20_2
+        value: yes
+        not: 1
+      - key: done:m20_1
+        value: yes
+        not: 0
+      - key: patient_tended
+        value: yes
+        not: 0
+      effects:
+      - key: done:m20_2
+        value: yes
+    - id: m20_3
+      actor: merrow
+      target:
+      location: garden
+      slot: m20_3
+      label: Pack the medical bag
+      actorText: You count the dressings and close the bag.
+      targetText:
+      observerText: Dr. Merrow packs her medical bag.
+      activity: Pack the medical bag
+      destination:
+      quiet: 1
+      from: 1
+      until: 4
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: garden
+        not: 0
+      - key: done:m20_3
+        value: yes
+        not: 1
+      - key: done:m20_2
+        value: yes
+        not: 0
+      - key: patient_tended
+        value: yes
+        not: 0
+      effects:
+      - key: done:m20_3
+        value: yes
+    - id: m30_0
+      actor: merrow
+      target:
+      location: hall
+      slot: m30_0
+      label: Check the time of the reading
+      actorText: The clock agrees with your watch. You put the watch away.
+      targetText:
+      observerText: Dr. Merrow compares her watch with the Hall clock.
+      activity: Check the time of the reading
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_0
+        value: yes
+        not: 1
+      effects:
+      - key: done:m30_0
+        value: yes
+    - id: m30_1
+      actor: merrow
+      target:
+      location: hall
+      slot: m30_1
+      label: Put your clinical notes in order
+      actorText: You separate what you saw from what you were told.
+      targetText:
+      observerText: Dr. Merrow puts her clinical notes in order.
+      activity: Put your clinical notes in order
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_1
+        value: yes
+        not: 1
+      - key: done:m30_0
+        value: yes
+        not: 0
+      effects:
+      - key: done:m30_1
+        value: yes
+    - id: m30_2
+      actor: merrow
+      target:
+      location: hall
+      slot: m30_2
+      label: Choose a clear view of the table
+      actorText: You move a chair so you can see the papers as well as the speaker.
+      targetText:
+      observerText: Dr. Merrow moves a chair toward the reading table.
+      activity: Choose a clear view of the table
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_2
+        value: yes
+        not: 1
+      - key: done:m30_1
+        value: yes
+        not: 0
+      effects:
+      - key: done:m30_2
+        value: yes
+    - id: m30_3
+      actor: merrow
+      target:
+      location: hall
+      slot: m30_3
+      label: Review the morning's appointments
+      actorText: The next patient will have to wait until this household has finished.
+      targetText:
+      observerText: Dr. Merrow reviews her appointment book.
+      activity: Review the morning's appointments
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_3
+        value: yes
+        not: 1
+      - key: done:m30_2
+        value: yes
+        not: 0
+      effects:
+      - key: done:m30_3
+        value: yes
+    - id: m30_4
+      actor: merrow
+      target:
+      location: hall
+      slot: m30_4
+      label: Put away the appointment book
+      actorText: You close the book. The room has your attention now.
+      targetText:
+      observerText: Dr. Merrow puts away her appointment book.
+      activity: Put away the appointment book
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_4
+        value: yes
+        not: 1
+      - key: done:m30_3
+        value: yes
+        not: 0
+      effects:
+      - key: done:m30_4
+        value: yes
+    - id: m30_5
+      actor: merrow
+      target:
+      location: hall
+      slot: m30_5
+      label: Pour a glass of water
+      actorText: You set the glass within reach of the people speaking.
+      targetText:
+      observerText: Dr. Merrow places water on the reading table.
+      activity: Pour a glass of water
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_5
+        value: yes
+        not: 1
+      - key: done:m30_4
+        value: yes
+        not: 0
+      effects:
+      - key: done:m30_5
+        value: yes
+    - id: m30_6
+      actor: merrow
+      target:
+      location: hall
+      slot: m30_6
+      label: Check your medical bag
+      actorText: Everything is where you left it. You close the clasp.
+      targetText:
+      observerText: Dr. Merrow checks and closes her medical bag.
+      activity: Check your medical bag
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_6
+        value: yes
+        not: 1
+      - key: done:m30_5
+        value: yes
+        not: 0
+      effects:
+      - key: done:m30_6
+        value: yes
+    - id: m30_7
+      actor: merrow
+      target:
+      location: hall
+      slot: m30_7
+      label: Take a seat facing the speaker
+      actorText: You settle where you can see the speaker's face.
+      targetText:
+      observerText: Dr. Merrow takes a seat facing the speaker.
+      activity: Take a seat facing the speaker
+      destination:
+      quiet: 1
+      from: 6
+      until: 15
+      phase: 1
+      once: 1
+      requires:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_7
+        value: yes
+        not: 1
+      - key: done:m30_6
+        value: yes
+        not: 0
+      effects:
+      - key: done:m30_7
+        value: yes
     rules:
     - id: c01
       actor: clara
-      action: 
+      action:
       route: hall
       from: 0
       until: 1
@@ -675,7 +1758,7 @@ MonoBehaviour:
     - id: c02
       actor: clara
       action: ignore
-      route: 
+      route:
       from: 1
       until: 4
       amount: 5
@@ -685,7 +1768,7 @@ MonoBehaviour:
         not: 0
     - id: c03
       actor: clara
-      action: 
+      action:
       route: archive
       from: 2
       until: 6
@@ -697,7 +1780,7 @@ MonoBehaviour:
     - id: c04
       actor: clara
       action: read_ledger
-      route: 
+      route:
       from: 2
       until: 8
       amount: 6
@@ -707,7 +1790,7 @@ MonoBehaviour:
         not: 0
     - id: c05
       actor: clara
-      action: 
+      action:
       route: hall
       from: 3
       until: 15
@@ -719,7 +1802,7 @@ MonoBehaviour:
     - id: c06
       actor: clara
       action: ask
-      route: 
+      route:
       from: 5
       until: 10
       amount: 6
@@ -733,7 +1816,7 @@ MonoBehaviour:
     - id: c07
       actor: clara
       action: show_clara
-      route: 
+      route:
       from: 12
       until: 15
       amount: 14
@@ -743,7 +1826,7 @@ MonoBehaviour:
         not: 0
     - id: j01
       actor: jonah
-      action: 
+      action:
       route: hall
       from: 0
       until: 1
@@ -751,7 +1834,7 @@ MonoBehaviour:
       conditions: []
     - id: j02
       actor: jonah
-      action: 
+      action:
       route: archive
       from: 2
       until: 5
@@ -769,7 +1852,7 @@ MonoBehaviour:
     - id: j03
       actor: jonah
       action: copy
-      route: 
+      route:
       from: 2
       until: 6
       amount: 6
@@ -779,7 +1862,7 @@ MonoBehaviour:
         not: 0
     - id: j04
       actor: jonah
-      action: 
+      action:
       route: hall
       from: 4
       until: 15
@@ -790,7 +1873,7 @@ MonoBehaviour:
         not: 0
     - id: j05
       actor: jonah
-      action: 
+      action:
       route: garden
       from: 2
       until: 8
@@ -802,7 +1885,7 @@ MonoBehaviour:
     - id: j06
       actor: jonah
       action: refuse
-      route: 
+      route:
       from: 5
       until: 11
       amount: 5
@@ -813,7 +1896,7 @@ MonoBehaviour:
     - id: j07
       actor: jonah
       action: vouch
-      route: 
+      route:
       from: 5
       until: 11
       amount: 9
@@ -827,7 +1910,7 @@ MonoBehaviour:
     - id: j08
       actor: jonah
       action: expose
-      route: 
+      route:
       from: 5
       until: 11
       amount: 11
@@ -840,7 +1923,7 @@ MonoBehaviour:
         not: 0
     - id: j09
       actor: jonah
-      action: 
+      action:
       route: hall
       from: 10
       until: 15
@@ -849,7 +1932,7 @@ MonoBehaviour:
     - id: j10
       actor: jonah
       action: show_jonah
-      route: 
+      route:
       from: 12
       until: 15
       amount: 14
@@ -859,7 +1942,7 @@ MonoBehaviour:
         not: 0
     - id: v01
       actor: vale
-      action: 
+      action:
       route: archive
       from: 3
       until: 8
@@ -874,7 +1957,7 @@ MonoBehaviour:
     - id: v02
       actor: vale
       action: take
-      route: 
+      route:
       from: 3
       until: 9
       amount: 7
@@ -884,7 +1967,7 @@ MonoBehaviour:
         not: 0
     - id: v03
       actor: vale
-      action: 
+      action:
       route: chapel
       from: 5
       until: 11
@@ -896,7 +1979,7 @@ MonoBehaviour:
     - id: v04
       actor: vale
       action: conceal
-      route: 
+      route:
       from: 5
       until: 11
       amount: 7
@@ -906,7 +1989,7 @@ MonoBehaviour:
         not: 0
     - id: v05
       actor: vale
-      action: 
+      action:
       route: hall
       from: 11
       until: 15
@@ -915,7 +1998,7 @@ MonoBehaviour:
     - id: v06
       actor: vale
       action: accuse
-      route: 
+      route:
       from: 13
       until: 15
       amount: 9
@@ -926,7 +2009,7 @@ MonoBehaviour:
     - id: v07
       actor: vale
       action: accuse_clara
-      route: 
+      route:
       from: 13
       until: 15
       amount: 9
@@ -937,7 +2020,7 @@ MonoBehaviour:
     - id: m01
       actor: merrow
       action: tend
-      route: 
+      route:
       from: 0
       until: 5
       amount: 6
@@ -947,7 +2030,7 @@ MonoBehaviour:
         not: 0
     - id: m02
       actor: merrow
-      action: 
+      action:
       route: hall
       from: 5
       until: 15
@@ -959,7 +2042,7 @@ MonoBehaviour:
     - id: m03
       actor: merrow
       action: witness
-      route: 
+      route:
       from: 5
       until: 10
       amount: 8
@@ -973,7 +2056,7 @@ MonoBehaviour:
     - id: m04
       actor: merrow
       action: testify
-      route: 
+      route:
       from: 9
       until: 14
       amount: 8
@@ -984,7 +2067,7 @@ MonoBehaviour:
     - id: m05
       actor: merrow
       action: defend
-      route: 
+      route:
       from: 12
       until: 15
       amount: 15
@@ -997,5 +2080,625 @@ MonoBehaviour:
         not: 0
       - key: vouched
         value: yes
+        not: 0
+    - id: c20_0
+      actor: clara
+      action: c20_0
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_0
+        value: yes
+        not: 1
+    - id: c20_1
+      actor: clara
+      action: c20_1
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_1
+        value: yes
+        not: 1
+      - key: done:c20_0
+        value: yes
+        not: 0
+    - id: c20_2
+      actor: clara
+      action: c20_2
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_2
+        value: yes
+        not: 1
+      - key: done:c20_1
+        value: yes
+        not: 0
+    - id: c20_3
+      actor: clara
+      action: c20_3
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_3
+        value: yes
+        not: 1
+      - key: done:c20_2
+        value: yes
+        not: 0
+    - id: c20_4
+      actor: clara
+      action: c20_4
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_4
+        value: yes
+        not: 1
+      - key: done:c20_3
+        value: yes
+        not: 0
+    - id: c20_5
+      actor: clara
+      action: c20_5
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_5
+        value: yes
+        not: 1
+      - key: done:c20_4
+        value: yes
+        not: 0
+    - id: c20_6
+      actor: clara
+      action: c20_6
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_6
+        value: yes
+        not: 1
+      - key: done:c20_5
+        value: yes
+        not: 0
+    - id: c20_7
+      actor: clara
+      action: c20_7
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:clara
+        value: hall
+        not: 0
+      - key: done:c20_7
+        value: yes
+        not: 1
+      - key: done:c20_6
+        value: yes
+        not: 0
+    - id: j20_0
+      actor: jonah
+      action: j20_0
+      route:
+      from: 5
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_0
+        value: yes
+        not: 1
+    - id: j20_1
+      actor: jonah
+      action: j20_1
+      route:
+      from: 5
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_1
+        value: yes
+        not: 1
+      - key: done:j20_0
+        value: yes
+        not: 0
+    - id: j20_2
+      actor: jonah
+      action: j20_2
+      route:
+      from: 5
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_2
+        value: yes
+        not: 1
+      - key: done:j20_1
+        value: yes
+        not: 0
+    - id: j20_3
+      actor: jonah
+      action: j20_3
+      route:
+      from: 5
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_3
+        value: yes
+        not: 1
+      - key: done:j20_2
+        value: yes
+        not: 0
+    - id: j20_4
+      actor: jonah
+      action: j20_4
+      route:
+      from: 5
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_4
+        value: yes
+        not: 1
+      - key: done:j20_3
+        value: yes
+        not: 0
+    - id: j20_5
+      actor: jonah
+      action: j20_5
+      route:
+      from: 5
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_5
+        value: yes
+        not: 1
+      - key: done:j20_4
+        value: yes
+        not: 0
+    - id: j20_6
+      actor: jonah
+      action: j20_6
+      route:
+      from: 5
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_6
+        value: yes
+        not: 1
+      - key: done:j20_5
+        value: yes
+        not: 0
+    - id: j20_7
+      actor: jonah
+      action: j20_7
+      route:
+      from: 5
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:jonah
+        value: hall
+        not: 0
+      - key: done:j20_7
+        value: yes
+        not: 1
+      - key: done:j20_6
+        value: yes
+        not: 0
+    - id: v20_0
+      actor: vale
+      action: v20_0
+      route:
+      from: 0
+      until: 8
+      amount: 1
+      conditions:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v20_0
+        value: yes
+        not: 1
+    - id: v20_1
+      actor: vale
+      action: v20_1
+      route:
+      from: 0
+      until: 8
+      amount: 1
+      conditions:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v20_1
+        value: yes
+        not: 1
+      - key: done:v20_0
+        value: yes
+        not: 0
+    - id: v20_2
+      actor: vale
+      action: v20_2
+      route:
+      from: 0
+      until: 8
+      amount: 1
+      conditions:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v20_2
+        value: yes
+        not: 1
+      - key: done:v20_1
+        value: yes
+        not: 0
+    - id: v30_0
+      actor: vale
+      action: v30_0
+      route:
+      from: 9
+      until: 10
+      amount: 1
+      conditions:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v30_0
+        value: yes
+        not: 1
+    - id: v30_1
+      actor: vale
+      action: v30_1
+      route:
+      from: 9
+      until: 10
+      amount: 1
+      conditions:
+      - key: at:vale
+        value: chapel
+        not: 0
+      - key: done:v30_1
+        value: yes
+        not: 1
+      - key: done:v30_0
+        value: yes
+        not: 0
+    - id: v40_0
+      actor: vale
+      action: v40_0
+      route:
+      from: 12
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:vale
+        value: hall
+        not: 0
+      - key: done:v40_0
+        value: yes
+        not: 1
+    - id: v40_1
+      actor: vale
+      action: v40_1
+      route:
+      from: 12
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:vale
+        value: hall
+        not: 0
+      - key: done:v40_1
+        value: yes
+        not: 1
+      - key: done:v40_0
+        value: yes
+        not: 0
+    - id: v40_2
+      actor: vale
+      action: v40_2
+      route:
+      from: 12
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:vale
+        value: hall
+        not: 0
+      - key: done:v40_2
+        value: yes
+        not: 1
+      - key: done:v40_1
+        value: yes
+        not: 0
+    - id: m20_0
+      actor: merrow
+      action: m20_0
+      route:
+      from: 1
+      until: 4
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: garden
+        not: 0
+      - key: done:m20_0
+        value: yes
+        not: 1
+      - key: patient_tended
+        value: yes
+        not: 0
+    - id: m20_1
+      actor: merrow
+      action: m20_1
+      route:
+      from: 1
+      until: 4
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: garden
+        not: 0
+      - key: done:m20_1
+        value: yes
+        not: 1
+      - key: done:m20_0
+        value: yes
+        not: 0
+      - key: patient_tended
+        value: yes
+        not: 0
+    - id: m20_2
+      actor: merrow
+      action: m20_2
+      route:
+      from: 1
+      until: 4
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: garden
+        not: 0
+      - key: done:m20_2
+        value: yes
+        not: 1
+      - key: done:m20_1
+        value: yes
+        not: 0
+      - key: patient_tended
+        value: yes
+        not: 0
+    - id: m20_3
+      actor: merrow
+      action: m20_3
+      route:
+      from: 1
+      until: 4
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: garden
+        not: 0
+      - key: done:m20_3
+        value: yes
+        not: 1
+      - key: done:m20_2
+        value: yes
+        not: 0
+      - key: patient_tended
+        value: yes
+        not: 0
+    - id: m30_0
+      actor: merrow
+      action: m30_0
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_0
+        value: yes
+        not: 1
+    - id: m30_1
+      actor: merrow
+      action: m30_1
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_1
+        value: yes
+        not: 1
+      - key: done:m30_0
+        value: yes
+        not: 0
+    - id: m30_2
+      actor: merrow
+      action: m30_2
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_2
+        value: yes
+        not: 1
+      - key: done:m30_1
+        value: yes
+        not: 0
+    - id: m30_3
+      actor: merrow
+      action: m30_3
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_3
+        value: yes
+        not: 1
+      - key: done:m30_2
+        value: yes
+        not: 0
+    - id: m30_4
+      actor: merrow
+      action: m30_4
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_4
+        value: yes
+        not: 1
+      - key: done:m30_3
+        value: yes
+        not: 0
+    - id: m30_5
+      actor: merrow
+      action: m30_5
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_5
+        value: yes
+        not: 1
+      - key: done:m30_4
+        value: yes
+        not: 0
+    - id: m30_6
+      actor: merrow
+      action: m30_6
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_6
+        value: yes
+        not: 1
+      - key: done:m30_5
+        value: yes
+        not: 0
+    - id: m30_7
+      actor: merrow
+      action: m30_7
+      route:
+      from: 6
+      until: 15
+      amount: 1
+      conditions:
+      - key: at:merrow
+        value: hall
+        not: 0
+      - key: done:m30_7
+        value: yes
+        not: 1
+      - key: done:m30_6
+        value: yes
+        not: 0
+    - id: c40
+      actor: clara
+      action: follow:jonah
+      route:
+      from: 4
+      until: 10
+      amount: 7
+      conditions:
+      - key: ledger_read
+        value: yes
+        not: 0
+      - key: asked
+        value: yes
+        not: 1
+      - key: crossed:clara:jonah
+        value: $previousTurn
         not: 0
     turns: 16
