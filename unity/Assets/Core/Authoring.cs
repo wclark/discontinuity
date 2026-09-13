@@ -11,8 +11,8 @@ namespace Discontinuity
 
         public bool ItemHere(string item, string actor)
         {
-            string owner = State.Get("owner:" + item), here = State.Get("at:" + actor);
-            return !string.IsNullOrEmpty(here) && (owner == here || Data.people.Any(p => p.id == owner && State.Get("at:" + p.id) == here));
+            string owner = State.Get("owner:" + item), here = Here(actor);
+            return !string.IsNullOrEmpty(here) && (owner == here || Data.people.Any(p => p.id == owner && Here(p.id) == here));
         }
         void AddConditionCauses(List<int> causes, Condition c, string actor, string target)
         {
@@ -27,24 +27,24 @@ namespace Discontinuity
         }
         public List<Criterion> Availability(Choice c)
         {
-            string here = State.Get("at:" + c.actor);
+            string here = Here(c.actor);
             var criteria = new List<Criterion>
             {
                 new Criterion("Actor: " + Name(c.actor), Data.people.Any(p => p.id == c.actor)),
-                new Criterion("Time: " + Clock(c.from) + "-" + Clock(c.until) + " (turns " + (c.from + 1) + "-" + (c.until + 1) + ", inclusive)", !Ended && State.turn >= c.from && State.turn <= c.until),
+                new Criterion("Time: " + Clock(c.from) + "-" + Clock(c.until) + (c.reaction ? " / crossing midpoint" : ""), !Ended && State.turn >= c.from && State.turn <= c.until && c.reaction == InTransit && (!InTransit || Travelers.Contains(c.actor))),
                 new Criterion("Location: " + (string.IsNullOrEmpty(c.location) ? "any room" : Name(c.location)), string.IsNullOrEmpty(c.location) || here == c.location)
             };
             if (!string.IsNullOrEmpty(c.target) && string.IsNullOrEmpty(c.destination))
-                criteria.Add(new Criterion("Target: " + Name(c.target) + " is here", State.Get("at:" + c.target) == here));
+                criteria.Add(new Criterion("People present: " + Name(c.target), Here(c.target) == here));
             if (!string.IsNullOrEmpty(c.destination))
                 criteria.Add(new Criterion("Adjacent exit: " + Name(c.destination), Data.rooms.Any(r => r.id == here && r.exits.Contains(c.destination))));
-            criteria.Add(new Criterion(c.once ? "Unused decision slot: " + Context(c) : "Repeatable decision slot: " + Context(c), !c.once || !State.used.Contains(c.actor + ":" + Context(c))));
-            criteria.AddRange(c.requires.Select(v => new Criterion(Describe(v, c.actor, c.target), Met(v, c.actor, c.target))));
+            if (!Adjusting) criteria.Add(new Criterion(c.once ? "Unused decision slot: " + Context(c) : "Repeatable decision slot: " + Context(c), !c.once || !State.used.Contains(c.actor + ":" + Context(c))));
+            criteria.AddRange(c.requires.Where(v => !Adjusting || Spatial(v)).Select(v => new Criterion(Describe(v, c.actor, c.target), Met(v, c.actor, c.target))));
             foreach (var effect in c.effects.Where(e => (e.key ?? "").StartsWith("owner:")))
             {
                 string item = effect.key.Substring(6), owner = Resolve(effect.value, c.actor, c.target);
                 criteria.Add(new Criterion("Transfer: " + Name(item) + " is here", ItemHere(item, c.actor)));
-                if (Data.people.Any(p => p.id == owner)) criteria.Add(new Criterion("Recipient: " + Name(owner) + " is here", State.Get("at:" + owner) == here));
+                if (Data.people.Any(p => p.id == owner)) criteria.Add(new Criterion("Recipient: " + Name(owner) + " is here", Here(owner) == here));
                 if (Data.rooms.Any(r => r.id == owner)) criteria.Add(new Criterion("Place item in current room: " + Name(owner), owner == here));
             }
             return criteria;
@@ -58,7 +58,7 @@ namespace Discontinuity
             require(!string.IsNullOrWhiteSpace(choice.label), "An action label is required.");
             Action<int, int> window = (from, until) => require(from >= 0 && until >= from && until < Data.turns, "Time range must be ordered and inside this morning.");
             window(choice.from, choice.until);
-            require(string.IsNullOrEmpty(choice.location) || Data.rooms.Any(r => r.id == choice.location), "Choose an existing location.");
+            require(string.IsNullOrEmpty(choice.location) || (choice.reaction ? IsEdge(choice.location) : Data.rooms.Any(r => r.id == choice.location)), "Choose an existing location.");
             require(string.IsNullOrEmpty(choice.target) || Data.people.Any(p => p.id == choice.target && p.id != choice.actor), "Choose another person as the target.");
             if (writeChoice)
             {
@@ -67,6 +67,7 @@ namespace Discontinuity
                 require(string.IsNullOrEmpty(choice.target) || !string.IsNullOrWhiteSpace(choice.targetText), "Target prose is required when there is a target.");
                 require(choice.phase >= 0 && choice.phase <= 3, "Choose a valid resolution phase.");
                 require(choice.phase != 2 || !string.IsNullOrEmpty(choice.destination), "Movement needs a destination.");
+                require(!choice.reaction || string.IsNullOrEmpty(choice.destination), "Crossing reactions cannot start another journey.");
                 if (!string.IsNullOrEmpty(choice.destination))
                 {
                     require(Data.rooms.Any(r => r.id == choice.destination), "Choose an existing destination.");

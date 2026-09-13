@@ -39,7 +39,7 @@ namespace Discontinuity
             }
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Household.unity", true) };
             PlayerSettings.companyName = "Discontinuity"; PlayerSettings.productName = "Discontinuity";
-            PlayerSettings.bundleVersion = "0.5.0";
+            PlayerSettings.bundleVersion = "0.6.0";
             foreach (string path in Directory.GetFiles("Assets/Resources/Scenes", "*.png").Concat(Directory.GetFiles("Assets/Resources/Tableaux", "*.png")).Concat(new[] { "Assets/Resources/Characters.png" }))
             {
                 var textureImporter = (TextureImporter)AssetImporter.GetAtPath(path.Replace('\\', '/'));
@@ -200,6 +200,7 @@ namespace Discontinuity
             }
             passed += MovementChecks.Run();
             passed += AuthoringChecks.Run();
+            passed += CompositionChecks.Run();
             SceneCoverage.Export(data);
             string output = Path.GetFullPath("../artifacts"); Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output, "simulation-verification.txt"), passed + " checks passed.\n" + string.Join("\n", baseForecast.Select(e => Simulation.Clock(e.turn) + " " + e.actor + ": " + e.label)));

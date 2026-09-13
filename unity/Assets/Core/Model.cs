@@ -21,7 +21,7 @@ namespace Discontinuity
         public string id, actor, target, location, slot, label, actorText, targetText, observerText;
         public string activity;
         public string destination;
-        public bool quiet;
+        public bool quiet, reaction;
         public int from, until = 15, phase = 1;
         public bool once = true;
         public List<Condition> requires = new List<Condition>();
@@ -51,11 +51,12 @@ namespace Discontinuity
         public bool active;
         public List<int> causes = new List<int>();
     }
-    public class Option
+    [Serializable] public class Option
     {
         public Choice choice;
         public float conditions, manual, recorded;
         public string manualId;
+        public bool departureValid;
         public float Score { get { return conditions + manual; } }
         public List<Contribution> terms = new List<Contribution>();
     }
@@ -99,6 +100,7 @@ namespace Discontinuity
         public List<Event> events = new List<Event>();
         public List<string> used = new List<string>();
         public List<string> applied = new List<string>();
+        public Transit transit;
         public string Get(string key) { var f = facts.Find(v => v.key == key); return f == null ? "" : f.value; }
         public int Source(string key) { var f = facts.Find(v => v.key == key); return f == null ? -1 : f.source; }
         public void Set(string key, string value, int source = -1)
@@ -110,7 +112,7 @@ namespace Discontinuity
         public World Copy()
         {
             return new World { turn = turn, facts = facts.Select(f => new Fact { key = f.key, value = f.value, source = f.source }).ToList(),
-                events = new List<Event>(events), used = new List<string>(used), applied = new List<string>(applied) };
+                events = new List<Event>(events), used = new List<string>(used), applied = new List<string>(applied), transit = transit?.Copy() };
         }
     }
     [Serializable] public class Campaign
@@ -128,6 +130,27 @@ namespace Discontinuity
         // Only portable records pin the base scenario; ordinary saves use the installed content.
         public Scenario scenario;
         public bool frozenScenario;
+        public string mode = "adjustment", recordKind = "state";
+        public bool adjustmentsImported;
+        public List<Guidance> adjustments = new List<Guidance>();
+    }
+    [Serializable] public class RankedDecision
+    {
+        public string actor;
+        public List<Option> options = new List<Option>();
+    }
+    [Serializable] public class Transit
+    {
+        public bool active;
+        public List<Option> moves = new List<Option>(), tail = new List<Option>();
+        public List<RankedDecision> decisions = new List<RankedDecision>();
+        public List<int> crossings = new List<int>();
+        public List<Fact> before = new List<Fact>();
+        public Transit Copy()
+        {
+            return new Transit { active = active, moves = new List<Option>(moves), tail = new List<Option>(tail),
+                decisions = new List<RankedDecision>(decisions), crossings = new List<int>(crossings), before = new List<Fact>(before) };
+        }
     }
     public class Criterion
     {

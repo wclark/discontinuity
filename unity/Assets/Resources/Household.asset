@@ -108,6 +108,7 @@ MonoBehaviour:
       activity: Passing in silence
       destination:
       quiet: 0
+      reaction: 0
       from: 1
       until: 4
       phase: 0
@@ -131,6 +132,7 @@ MonoBehaviour:
       activity: Offering a clean cloth
       destination:
       quiet: 0
+      reaction: 0
       from: 1
       until: 4
       phase: 0
@@ -161,6 +163,7 @@ MonoBehaviour:
       activity: Mocking Jonah's cuff
       destination:
       quiet: 0
+      reaction: 0
       from: 1
       until: 4
       phase: 0
@@ -186,6 +189,7 @@ MonoBehaviour:
       activity: Warning Jonah away
       destination:
       quiet: 0
+      reaction: 0
       from: 1
       until: 4
       phase: 0
@@ -211,6 +215,7 @@ MonoBehaviour:
       activity: Reading the wage entries
       destination:
       quiet: 0
+      reaction: 0
       from: 2
       until: 8
       phase: 1
@@ -234,6 +239,7 @@ MonoBehaviour:
       activity: Taking the envelope
       destination:
       quiet: 0
+      reaction: 0
       from: 0
       until: 10
       phase: 1
@@ -257,6 +263,7 @@ MonoBehaviour:
       activity: Asking Jonah for support
       destination:
       quiet: 0
+      reaction: 0
       from: 5
       until: 10
       phase: 0
@@ -283,6 +290,7 @@ MonoBehaviour:
       activity: Apologizing to Jonah
       destination:
       quiet: 0
+      reaction: 0
       from: 4
       until: 10
       phase: 0
@@ -311,6 +319,7 @@ MonoBehaviour:
       activity: Copying the address
       destination:
       quiet: 0
+      reaction: 0
       from: 2
       until: 6
       phase: 1
@@ -334,6 +343,7 @@ MonoBehaviour:
       activity: Pocketing the envelope
       destination:
       quiet: 0
+      reaction: 0
       from: 2
       until: 6
       phase: 1
@@ -357,6 +367,7 @@ MonoBehaviour:
       activity: Speaking for Clara
       destination:
       quiet: 0
+      reaction: 0
       from: 5
       until: 11
       phase: 0
@@ -385,6 +396,7 @@ MonoBehaviour:
       activity: Declining to help
       destination:
       quiet: 0
+      reaction: 0
       from: 5
       until: 11
       phase: 0
@@ -411,6 +423,7 @@ MonoBehaviour:
       activity: Casting suspicion on Clara
       destination:
       quiet: 0
+      reaction: 0
       from: 5
       until: 11
       phase: 0
@@ -439,6 +452,7 @@ MonoBehaviour:
       activity: Removing the envelope
       destination:
       quiet: 0
+      reaction: 0
       from: 3
       until: 9
       phase: 1
@@ -462,6 +476,7 @@ MonoBehaviour:
       activity: Leaving the envelope
       destination:
       quiet: 0
+      reaction: 0
       from: 3
       until: 9
       phase: 1
@@ -485,6 +500,7 @@ MonoBehaviour:
       activity: Hiding the envelope
       destination:
       quiet: 0
+      reaction: 0
       from: 5
       until: 11
       phase: 1
@@ -508,6 +524,7 @@ MonoBehaviour:
       activity: Tending the groundskeeper
       destination:
       quiet: 0
+      reaction: 0
       from: 0
       until: 5
       phase: 1
@@ -531,6 +548,7 @@ MonoBehaviour:
       activity: Noticing the blue paper
       destination:
       quiet: 0
+      reaction: 0
       from: 5
       until: 10
       phase: 0
@@ -557,6 +575,7 @@ MonoBehaviour:
       activity: Reporting what she saw
       destination:
       quiet: 0
+      reaction: 0
       from: 9
       until: 14
       phase: 0
@@ -580,6 +599,7 @@ MonoBehaviour:
       activity: Accusing Jonah
       destination:
       quiet: 0
+      reaction: 0
       from: 13
       until: 15
       phase: 0
@@ -609,6 +629,7 @@ MonoBehaviour:
       activity: Accusing Clara
       destination:
       quiet: 0
+      reaction: 0
       from: 13
       until: 15
       phase: 0
@@ -638,6 +659,7 @@ MonoBehaviour:
       activity: Joining the evidence
       destination:
       quiet: 0
+      reaction: 0
       from: 12
       until: 15
       phase: 0
@@ -673,6 +695,7 @@ MonoBehaviour:
       activity: Showing the envelope
       destination:
       quiet: 0
+      reaction: 0
       from: 12
       until: 15
       phase: 0
@@ -698,6 +721,7 @@ MonoBehaviour:
       activity: Showing the envelope
       destination:
       quiet: 0
+      reaction: 0
       from: 12
       until: 15
       phase: 0
@@ -723,6 +747,7 @@ MonoBehaviour:
       activity: Read the notice for the accounts reading
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -749,6 +774,7 @@ MonoBehaviour:
       activity: Set out chairs for the reading
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -778,6 +804,7 @@ MonoBehaviour:
       activity: Check the names on the wage list
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -807,6 +834,7 @@ MonoBehaviour:
       activity: Prepare cups for the household
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -836,6 +864,7 @@ MonoBehaviour:
       activity: Write down the missing wage entry
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -865,6 +894,7 @@ MonoBehaviour:
       activity: Place your note by the reading table
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -894,6 +924,7 @@ MonoBehaviour:
       activity: Open the curtains for the reading
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -923,6 +954,7 @@ MonoBehaviour:
       activity: Take a place near the accounts table
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -952,6 +984,7 @@ MonoBehaviour:
       activity: Check the printer's delivery slip
       destination:
       quiet: 1
+      reaction: 0
       from: 5
       until: 15
       phase: 1
@@ -978,6 +1011,7 @@ MonoBehaviour:
       activity: Put your delivery papers in order
       destination:
       quiet: 1
+      reaction: 0
       from: 5
       until: 15
       phase: 1
@@ -1007,6 +1041,7 @@ MonoBehaviour:
       activity: Read the estate's announcement
       destination:
       quiet: 1
+      reaction: 0
       from: 5
       until: 15
       phase: 1
@@ -1036,6 +1071,7 @@ MonoBehaviour:
       activity: Check your ink-stained cuff
       destination:
       quiet: 1
+      reaction: 0
       from: 5
       until: 15
       phase: 1
@@ -1065,6 +1101,7 @@ MonoBehaviour:
       activity: Sharpen your pencil
       destination:
       quiet: 1
+      reaction: 0
       from: 5
       until: 15
       phase: 1
@@ -1094,6 +1131,7 @@ MonoBehaviour:
       activity: Pack the delivery papers
       destination:
       quiet: 1
+      reaction: 0
       from: 5
       until: 15
       phase: 1
@@ -1123,6 +1161,7 @@ MonoBehaviour:
       activity: Fasten your satchel
       destination:
       quiet: 1
+      reaction: 0
       from: 5
       until: 15
       phase: 1
@@ -1152,6 +1191,7 @@ MonoBehaviour:
       activity: Take a place by the Hall door
       destination:
       quiet: 1
+      reaction: 0
       from: 5
       until: 15
       phase: 1
@@ -1181,6 +1221,7 @@ MonoBehaviour:
       activity: Straighten the service books
       destination:
       quiet: 1
+      reaction: 0
       from: 0
       until: 8
       phase: 1
@@ -1207,6 +1248,7 @@ MonoBehaviour:
       activity: Light the morning candle
       destination:
       quiet: 1
+      reaction: 0
       from: 0
       until: 8
       phase: 1
@@ -1236,6 +1278,7 @@ MonoBehaviour:
       activity: Review the order of service
       destination:
       quiet: 1
+      reaction: 0
       from: 0
       until: 8
       phase: 1
@@ -1265,6 +1308,7 @@ MonoBehaviour:
       activity: Put the service papers away
       destination:
       quiet: 1
+      reaction: 0
       from: 9
       until: 10
       phase: 1
@@ -1291,6 +1335,7 @@ MonoBehaviour:
       activity: Check the chapel before leaving
       destination:
       quiet: 1
+      reaction: 0
       from: 9
       until: 10
       phase: 1
@@ -1320,6 +1365,7 @@ MonoBehaviour:
       activity: Arrange the papers for the reading
       destination:
       quiet: 1
+      reaction: 0
       from: 12
       until: 15
       phase: 1
@@ -1346,6 +1392,7 @@ MonoBehaviour:
       activity: Mark your place in the accounts
       destination:
       quiet: 1
+      reaction: 0
       from: 12
       until: 15
       phase: 1
@@ -1375,6 +1422,7 @@ MonoBehaviour:
       activity: Gather the account sheets
       destination:
       quiet: 1
+      reaction: 0
       from: 12
       until: 15
       phase: 1
@@ -1404,6 +1452,7 @@ MonoBehaviour:
       activity: Wash after dressing the wound
       destination:
       quiet: 1
+      reaction: 0
       from: 1
       until: 4
       phase: 1
@@ -1433,6 +1482,7 @@ MonoBehaviour:
       activity: Record the patient's injury
       destination:
       quiet: 1
+      reaction: 0
       from: 1
       until: 4
       phase: 1
@@ -1465,6 +1515,7 @@ MonoBehaviour:
       activity: Check the new bandage
       destination:
       quiet: 1
+      reaction: 0
       from: 1
       until: 4
       phase: 1
@@ -1497,6 +1548,7 @@ MonoBehaviour:
       activity: Pack the medical bag
       destination:
       quiet: 1
+      reaction: 0
       from: 1
       until: 4
       phase: 1
@@ -1529,6 +1581,7 @@ MonoBehaviour:
       activity: Check the time of the reading
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -1555,6 +1608,7 @@ MonoBehaviour:
       activity: Put your clinical notes in order
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -1584,6 +1638,7 @@ MonoBehaviour:
       activity: Choose a clear view of the table
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -1613,6 +1668,7 @@ MonoBehaviour:
       activity: Review the morning's appointments
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -1642,6 +1698,7 @@ MonoBehaviour:
       activity: Put away the appointment book
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -1671,6 +1728,7 @@ MonoBehaviour:
       activity: Pour a glass of water
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -1700,6 +1758,7 @@ MonoBehaviour:
       activity: Check your medical bag
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1
@@ -1729,6 +1788,7 @@ MonoBehaviour:
       activity: Take a seat facing the speaker
       destination:
       quiet: 1
+      reaction: 0
       from: 6
       until: 15
       phase: 1

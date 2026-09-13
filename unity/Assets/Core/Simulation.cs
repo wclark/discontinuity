@@ -13,10 +13,12 @@ namespace Discontinuity
         public bool Ended { get { return State.turn >= Data.turns; } }
         public Simulation(Scenario data, Campaign save = null)
         {
-            Save = save ?? new Campaign(); Data = Save.frozenScenario ? Save.scenario : data;
+            Save = save ?? new Campaign { mode = "story" }; Data = Save.frozenScenario ? Save.scenario : data;
             if (Save.choices == null) Save.choices = new List<Choice>();
             if (Save.rules == null) Save.rules = new List<Rule>();
             if (Save.world == null) Save.world = Initial();
+            ImportAdjustments();
+            if (Adjusting) { Save.reviewPending = false; Save.reviewIndex = 0; }
             RestoreWitnesses();
         }
         public static string Clock(int turn) { return (8 + turn / 4).ToString("00") + ":" + ((turn % 4) * 15).ToString("00"); }
@@ -31,7 +33,7 @@ namespace Discontinuity
         public void Begin(string player)
         {
             Save.previous = new List<Event>(State.events);
-            Save.guidance.RemoveAll(g => g.actor == player);
+            if (!Adjusting) Save.guidance.RemoveAll(g => g.actor == player);
             Save.player = player; Save.day++; Save.world = Initial();
             Save.reviewPending = false; Save.reviewIndex = 0;
         }
@@ -87,16 +89,17 @@ namespace Discontinuity
         }
         public string Name(string id)
         {
+            if (id != null && id.StartsWith("edge:")) return string.Join(" / ", id.Substring(5).Split(':').Select(Name)) + " passage";
             var p = Data.people.Find(v => v.id == id); if (p != null) return p.name;
             var r = Data.rooms.Find(v => v.id == id); if (r != null) return r.name;
             var t = Data.items.Find(v => v.id == id); return t == null ? id : t.name;
         }
         public string Resolve(string text, string actor, string target = "")
-        { return (text ?? "").Replace("$actor", actor ?? "").Replace("$target", target ?? "").Replace("$here", State.Get("at:" + actor)).Replace("$previousTurn", (State.turn - 1).ToString()); }
+        { return (text ?? "").Replace("$actor", actor ?? "").Replace("$target", target ?? "").Replace("$here", Here(actor)).Replace("$previousTurn", (State.turn - 1).ToString()); }
         public bool Met(Condition c, string actor, string target = "")
         {
             string key = Resolve(c.key, actor, target);
-            bool equal = (key.StartsWith("near:") ? (ItemHere(key.Substring(5), actor) ? "yes" : "no") : State.Get(key)) == Resolve(c.value, actor, target);
+            bool equal = (key.StartsWith("near:") ? (ItemHere(key.Substring(5), actor) ? "yes" : "no") : key.StartsWith("at:") ? Here(key.Substring(3)) : State.Get(key)) == Resolve(c.value, actor, target);
             return c.not ? !equal : equal;
         }
         public string Describe(Condition c, string actor, string target = "")
@@ -139,6 +142,7 @@ namespace Discontinuity
         }
         public List<Choice> Choices(string actor)
         {
+            if (InTransit) return Reactions(actor);
             var result = Definitions.Where(c => c.actor == actor && Valid(c)).ToList();
             string here = State.Get("at:" + actor);
             foreach (var exit in Data.rooms.Find(r => r.id == here).exits)
@@ -163,6 +167,7 @@ namespace Discontinuity
         public string Context(Choice c) { return string.IsNullOrEmpty(c.slot) ? c.id : c.slot; }
         Guidance Matching(Choice c)
         {
+            if (Adjusting) return Adjustment(c);
             if (c.actor == Save.player) return null;
             // Select the decision first, then its option. Alternatives never accumulate.
             var latest = Save.guidance.Where(g => g.actor == c.actor && g.context == Context(c) && g.location == c.location &&
@@ -173,7 +178,7 @@ namespace Discontinuity
         public List<Option> Rank(string actor)
         {
             return Choices(actor).Select(c => Evaluate(c)).OrderByDescending(o => o.Score)
-                .ThenBy(o => o.choice.id == "wait" ? 0 : 1).ThenBy(o => o.choice.id, StringComparer.Ordinal).ToList();
+                .ThenBy(o => o.choice.id == "wait" || o.choice.id == "cross:continue" ? 0 : 1).ThenBy(o => o.choice.id, StringComparer.Ordinal).ToList();
         }
         public Option Evaluate(Choice choice)
         {
@@ -188,10 +193,11 @@ namespace Discontinuity
                 }
                 if (action != choice.id) continue;
                 bool time = State.turn >= rule.from && State.turn <= rule.until;
-                bool active = time && rule.conditions.All(c => Met(c, choice.actor, choice.target));
+                bool completion = !Adjusting || StoryConditions(choice);
+                bool active = time && completion && rule.conditions.All(c => Met(c, choice.actor, choice.target));
                 var term = new Contribution { id = rule.id, active = active, amount = active ? Weight(rule) : 0,
                     description = Clock(rule.from) + "-" + Clock(rule.until) + (rule.conditions.Count == 0 ? "" : " | " +
-                        string.Join("; ", rule.conditions.Select(c => Describe(c, choice.actor, choice.target)))) };
+                        string.Join("; ", rule.conditions.Select(c => Describe(c, choice.actor, choice.target)))) + StoryConditionDescription(choice) };
                 if (active)
                     foreach (var c in rule.conditions) AddConditionCauses(term.causes, c, choice.actor, choice.target);
                 option.terms.Add(term); option.conditions += term.amount;
@@ -202,10 +208,12 @@ namespace Discontinuity
         }
         public float Increment(Option chosen, List<Option> options)
         {
+            if (Adjusting && options[0].choice.id == chosen.choice.id) return 0;
             return Math.Max(0, options.Max(o => o.Score) - chosen.Score) + 1;
         }
         void Record(Option chosen, List<Option> options)
         {
+            if (Adjusting) { Adjust(chosen, options); return; }
             var c = chosen.choice;
             int turn = State.turn;
             // A later decision in this context closes the earlier interval, including natural choices.
@@ -223,6 +231,7 @@ namespace Discontinuity
         public void Step(string humanChoice = null)
         {
             if (Ended) return;
+            if (InTransit) { ResolveReactions(humanChoice); return; }
             var rankings = Data.people.ToDictionary(p => p.id, p => Rank(p.id));
             var proposals = Data.people.Select(p => rankings[p.id][0]).ToList();
             if (!string.IsNullOrEmpty(Save.player) && humanChoice != null)
@@ -234,6 +243,7 @@ namespace Discontinuity
             }
             var ordered = proposals.OrderBy(o => o.choice.phase).ThenBy(o => Priority(o.choice.actor)).ToList();
             foreach (var proposal in ordered.Where(o => string.IsNullOrEmpty(o.choice.destination) && o.choice.phase < 3)) ResolveOne(proposal, rankings);
+            if (Adjusting && BeginTransit(ordered, rankings)) return;
             MoveTogether(ordered.Where(o => !string.IsNullOrEmpty(o.choice.destination)).ToList(), rankings);
             foreach (var proposal in ordered.Where(o => string.IsNullOrEmpty(o.choice.destination) && o.choice.phase >= 3)) ResolveOne(proposal, rankings);
             State.turn++;
@@ -327,7 +337,7 @@ namespace Discontinuity
         }
         public List<Event> Forecast()
         {
-            var campaign = new Campaign { player = "", world = State.Copy(), guidance = new List<Guidance>(Save.guidance.Where(g => g.actor != Save.player)),
+            var campaign = new Campaign { player = "", mode = Save.mode, adjustmentsImported = true, adjustments = new List<Guidance>(Save.adjustments), world = State.Copy(), guidance = new List<Guidance>(Save.guidance.Where(g => g.actor != Save.player)),
                 weights = Save.weights.Select(s => new NumberSetting { id = s.id, value = s.value }).ToList(), previous = Save.previous,
                 choices = new List<Choice>(Save.choices), rules = new List<Rule>(Save.rules) };
             var sim = new Simulation(Data, campaign);

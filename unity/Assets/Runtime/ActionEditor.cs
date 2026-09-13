@@ -114,7 +114,16 @@ namespace Discontinuity
             if (sim.Save.reviewPending || sim.Ended) return;
             bool generated = source != null && !sim.Definitions.Any(c => c.actor == source.actor && c.id == source.id);
             string id = "custom_" + Guid.NewGuid().ToString("N");
-            var draft = source == null ? new Choice { id = id, slot = id, actor = sim.Save.player, target = "", location = sim.State.Get("at:" + sim.Save.player), from = sim.State.turn, until = sim.Data.turns - 1, label = "", actorText = "", observerText = "" } : Copy(source);
+            var draft = source == null ? new Choice { id = id, slot = id, actor = sim.Save.player, target = "", location = sim.Here(sim.Save.player),
+                once = !sim.Adjusting, reaction = sim.InTransit, phase = sim.InTransit ? 0 : 1,
+                from = sim.State.turn, until = sim.Data.turns - 1, label = "", actorText = "", observerText = "" } : Copy(source);
+            if (sim.Adjusting)
+                foreach (var c in draft.requires)
+                {
+                    if (c.key.StartsWith("at:") && c.value == draft.location) c.value = "$here";
+                    if (c.key.StartsWith("owner:") && c.value == draft.actor) c.value = "$actor";
+                    if (c.key.StartsWith("owner:") && c.value == draft.location) { c.key = "near:" + c.key.Substring(6); c.value = "yes"; }
+                }
             var rules = sim.Rules.Where(r => r.actor == draft.actor && r.action == draft.id && string.IsNullOrEmpty(r.route)).Select(r =>
             {
                 var copy = Copy(r); copy.amount = sim.Weight(r); return copy;
@@ -147,19 +156,27 @@ namespace Discontinuity
                         return;
                     }
                     Field(form, "Action label", draft.label, v => draft.label = v);
-                    Pick(form, "Location", new[] { "" }.Concat(sim.Data.rooms.Select(r => r.id)).ToList(), draft.location ?? "", v => draft.location = v, EntityName);
+                    if (!sim.Adjusting) Pick(form, "Location", new[] { "" }.Concat(sim.Data.rooms.Select(r => r.id)).ToList(), draft.location ?? "", v => draft.location = v, EntityName);
                     Pick(form, "Target", new[] { "" }.Concat(sim.Data.people.Where(p => p.id != draft.actor).Select(p => p.id)).ToList(), draft.target ?? "", v => draft.target = v, v => v == "" ? "None" : sim.Name(v));
-                    WindowFields(form, draft.from, draft.until, v => draft.from = v, v => draft.until = v);
-                    Toggle(form, "Once per decision slot", draft.once, v => draft.once = v);
-                    Field(form, "Decision slot", draft.slot, v => draft.slot = v);
-                    Pick(form, "Phase", new List<string> { "0", "1", "2", "3" }, draft.phase.ToString(), v =>
+                    if (!sim.Adjusting) WindowFields(form, draft.from, draft.until, v => draft.from = v, v => draft.until = v);
+                    if (sim.Adjusting)
+                        Pick(form, "Moment", new List<string> { "Room turn", "Crossing" }, draft.reaction ? "Crossing" : "Room turn", v =>
+                        {
+                            draft.reaction = v == "Crossing"; draft.phase = draft.reaction ? 0 : 1; draft.destination = "";
+                            draft.location = draft.reaction ? Simulation.Edge(sim.Data.rooms[0].id, sim.Data.rooms[0].exits[0]) : sim.State.Get("at:" + draft.actor);
+                            draft.effects.RemoveAll(e => e.key.StartsWith("at:")); show(tab);
+                        });
+                    var details = sim.Adjusting ? Fold(form, "Resolution details") : form;
+                    Toggle(details, sim.Adjusting ? "Stop condition points after use" : "Once per decision slot", draft.once, v => draft.once = v);
+                    Field(details, "Decision slot", draft.slot, v => draft.slot = v);
+                    Pick(details, "Phase", new List<string> { "0", "1", "2", "3" }, draft.phase.ToString(), v =>
                     {
                         draft.phase = int.Parse(v);
                         if (draft.phase != 2) { draft.destination = ""; draft.effects.RemoveAll(e => e.key == "at:$actor"); }
                         show(tab);
                     }, v => new[] { "Conversation", "Room activity", "Movement", "End of turn" }[int.Parse(v)]);
                     if (draft.phase == 2)
-                        Pick(form, "Destination", new[] { "" }.Concat(sim.Data.rooms.Select(r => r.id)).ToList(), draft.destination ?? "", v =>
+                        Pick(details, "Destination", new[] { "" }.Concat(sim.Data.rooms.Select(r => r.id)).ToList(), draft.destination ?? "", v =>
                         {
                             draft.destination = v; draft.effects = v == "" ? new List<Effect>() : new List<Effect> { new Effect("at:$actor", v) };
                         }, v => v == "" ? "Choose a destination" : sim.Name(v));
@@ -168,11 +185,18 @@ namespace Discontinuity
                 {
                     Text(form, "ALL REQUIRED", "section-label");
                     if (generated) foreach (var criterion in sim.Availability(draft)) Text(form, criterion.description, "factor-copy");
+                    else if (sim.Adjusting) SimpleAvailability(form, draft);
                     else Conditions(form, draft.requires, draft);
                 }
                 if (tab == "Score")
                 {
                     Text(form, "BASE SCORE / 0", "section-label");
+                    if (sim.Adjusting && (draft.once || draft.requires.Any(c => !Simulation.Spatial(c))))
+                    {
+                        var legacy = Fold(form, "Existing story conditions");
+                        if (draft.once) Text(legacy, "Condition points stop after decision slot " + sim.Context(draft) + " completes.", "factor-copy");
+                        foreach (var c in draft.requires.Where(c => !Simulation.Spatial(c))) Text(legacy, sim.Describe(c, draft.actor, draft.target), "factor-copy");
+                    }
                     foreach (var rule in rules.ToList())
                     {
                         var group = Box(form, "rule-editor");
@@ -232,7 +256,7 @@ namespace Discontinuity
         string RecordsDirectory => sandbox ? Path.GetFullPath("artifacts/records-" + Screen.width + "x" + Screen.height) : Path.Combine(Path.GetDirectoryName(savePath), "records");
         string RecordJson(bool freeze = true)
         {
-            var record = Copy(sim.Save); record.scenario = sim.Data; record.frozenScenario = freeze || sim.Save.frozenScenario;
+            var record = Copy(sim.Save); record.scenario = sim.Data; record.frozenScenario = freeze || sim.Save.frozenScenario; record.recordKind = "state";
             return JsonUtility.ToJson(record, true);
         }
         string WriteRecord()
@@ -251,6 +275,7 @@ namespace Discontinuity
                 catch (Exception ex) { result.text = ex.Message; }
             }, "tool-button");
             Text(content, "", "record-status");
+            if (sim.Adjusting) Button(content, "Save all weights", SaveWeights, "tool-button");
             Field(content, "Records folder", RecordsDirectory, v => { }).isReadOnly = true;
             Button(content, "Open records folder", () => { Directory.CreateDirectory(RecordsDirectory); Application.OpenURL(new Uri(RecordsDirectory + Path.DirectorySeparatorChar).AbsoluteUri); }, "tool-button");
             var import = new TextField("Record file") { name = "Record file" }; content.Add(import);
@@ -265,17 +290,19 @@ namespace Discontinuity
                 var saved = JsonUtility.FromJson<Campaign>(File.ReadAllText(path));
                 if (saved == null || saved.version != 1 || !saved.frozenScenario || saved.scenario == null || saved.world == null || !saved.scenario.people.Any(p => p.id == saved.player)) throw new Exception("Not a supported Discontinuity state record.");
                 var candidate = new Simulation(saved.scenario, saved);
+                bool weightsOnly = saved.recordKind == "weights";
+                if (weightsOnly) { candidate.Save.day = sim.Save.day + 1; candidate.Save.recordKind = "state"; }
                 if (saved.world.turn < 0 || saved.world.turn > candidate.Data.turns || candidate.Data.people.Any(p => !candidate.Data.rooms.Any(r => r.id == saved.world.Get("at:" + p.id)))) throw new Exception("The record contains invalid positions or time.");
                 foreach (var person in candidate.Data.people) candidate.Rank(person.id);
-                var content = OpenModal("Restore state?");
+                var content = OpenModal(weightsOnly ? "Begin a new pass with these weights?" : "Restore state?");
                 Text(content, "Life " + saved.day + " / " + candidate.Name(saved.player) + " / " + Simulation.Clock(saved.world.turn), "prose");
                 Text(content, Path.GetFileName(path), "factor-copy");
                 Button(content, "Cancel", CloseModal, "tool-button");
-                Button(content, "Restore recorded state", () =>
+                Button(content, weightsOnly ? "Begin with these weights" : "Restore recorded state", () =>
                 {
                     try
                     {
-                        WriteRecord(); undo.Push(RecordJson(false)); sim = candidate;
+                        WriteRecord(); undo.Push(RecordJson(false)); riding = false; sim = candidate;
                         notice = "Restored: " + Path.GetFileName(path); CloseModal(); Persist(); Render();
                     }
                     catch (Exception ex) { Text(content, "Could not preserve the current state: " + ex.Message, "editor-error"); }

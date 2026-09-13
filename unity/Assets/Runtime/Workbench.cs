@@ -37,11 +37,11 @@ namespace Discontinuity
             if (!sandbox && File.Exists(savePath))
                 try { saved = JsonUtility.FromJson<Campaign>(File.ReadAllText(savePath)); }
                 catch (Exception ex) { notice = "Save could not be loaded: " + ex.Message; }
-            sim = new Simulation(data, saved);
+            sim = new Simulation(data, saved ?? new Campaign());
             // Preserve an older observation run's world, but resume it as a real incarnation.
-            if (!data.people.Any(p => p.id == sim.Save.player))
+            if (!sim.Data.people.Any(p => p.id == sim.Save.player))
             {
-                sim.Save.player = data.people[0].id;
+                sim.Save.player = sim.Data.people[0].id;
                 sim.Save.guidance.RemoveAll(g => g.actor == sim.Save.player);
             }
             root = GetComponent<UIDocument>().rootVisualElement;
@@ -49,6 +49,7 @@ namespace Discontinuity
             root.AddToClassList("app");
             art = new SceneArt();
             if (Argument("-demo") != null) Fixture(Argument("-demo"));
+            if (Environment.GetCommandLineArgs().Contains("-smoke")) Fixture("kitchen");
             Render();
             if (Environment.GetCommandLineArgs().Contains("-smoke")) StartCoroutine(Smoke());
             else if (Argument("-capture") != null) StartCoroutine(Capture());
@@ -86,8 +87,10 @@ namespace Discontinuity
         void Advance(string action)
         {
             if (sim.Ended || sim.Save.reviewPending) return;
+            notice = "";
             undo.Push(RecordJson(false));
-            sim.Step(action); sim.Save.reviewPending = true; sim.Save.reviewIndex = 0;
+            sim.Step(action); sim.Save.reviewPending = !sim.Adjusting; sim.Save.reviewIndex = 0;
+            if (sim.InTransit || sim.Ended) riding = false;
             Persist(); Render();
         }
         bool Quiet(Event e) { return e.quiet || e.action == "wait"; }
@@ -102,6 +105,7 @@ namespace Discontinuity
         }
         void Undo()
         {
+            riding = false;
             if (undo.Count == 0) return;
             var restored = JsonUtility.FromJson<Campaign>(undo.Pop());
             sim = new Simulation(restored.scenario, restored);
@@ -109,6 +113,9 @@ namespace Discontinuity
         }
         void Continue()
         {
+            if (sim.Adjusting && sim.Ended)
+                try { WriteRecord(); }
+                catch (Exception ex) { notice = "Could not record this pass: " + ex.Message; Render(); return; }
             if (!sim.ContinueAsNext()) return;
             undo.Clear(); notice = ""; Persist(); Render();
         }
@@ -125,6 +132,7 @@ namespace Discontinuity
                 sim.Save.reviewIndex = Math.Max(0, Math.Min(sim.Save.reviewIndex, moments.Count - 1));
             }
             var beat = sim.Save.reviewPending && moments.Count > 0 ? moments[Math.Min(sim.Save.reviewIndex, moments.Count - 1)] : null;
+            if (sim.Adjusting && sim.InTransit) beat = sim.Crossing(player);
             var snapshot = beat == null ? Story.Snapshot(sim.State) : Story.Scene(beat, player);
             var room = sim.Data.rooms.Find(r => r.id == (beat == null ? sim.State.Get("at:" + player) : Story.Room(beat, player)));
             int turn = beat == null ? sim.State.turn : beat.turn;
@@ -134,11 +142,13 @@ namespace Discontinuity
             icon.AddToClassList("brand-icon"); brand.Add(icon);
             Text(brand, "Discontinuity", "brand-title");
             Text(header, person.name + " / " + person.role + " / LIFE " + sim.Save.day, "incarnation");
+            if (sim.Adjusting) Text(header, "ADJUSTMENT", "mode-label");
             var clock = Box(header, "clock");
-            Text(clock, Simulation.Clock(turn) + (beat == null ? "" : " - " + Simulation.Clock(turn + 1)), "time");
+            Text(clock, sim.Adjusting ? sim.Now : Simulation.Clock(turn) + (beat == null ? "" : " - " + Simulation.Clock(turn + 1)), "time");
             Text(clock, "SATURDAY, 17 OCTOBER", "date");
             Button(header, "\u21b6", Undo, "icon-button", "Undo last turn").SetEnabled(undo.Count > 0);
             Button(header, "\u2193", OpenRecords, "icon-button", "State records");
+            if (sim.Adjusting) Button(header, riding ? "\u2161" : "\u25b6", ToggleRide, "icon-button", riding ? "Pause" : "Follow top choices").SetEnabled(!sim.Ended && !sim.InTransit);
 
             var scroll = new ScrollView(ScrollViewMode.Vertical); scroll.AddToClassList("page-scroll"); root.Add(scroll);
             var page = Box(scroll, "story-layout");
@@ -157,7 +167,11 @@ namespace Discontinuity
                 if (visible.Count > 0) Context(context, "NEARBY", string.Join(", ", visible));
             }
             var experienced = sim.Experienced(player);
-            if (beat != null)
+            if (sim.Adjusting)
+            {
+                RenderComposition(side, world, beat);
+            }
+            else if (beat != null)
             {
                 Text(side, "TURN " + (turn + 1) + " / MOMENT " + (sim.Save.reviewIndex + 1) + " OF " + moments.Count, "eyebrow");
                 Text(side, beat.kind == "crossing" ? "Crossing paths" : Story.Moving(beat) ? "Through the house" : beat.actor == player ? "Your part in the morning" : sim.Name(beat.actor), "story-title");
@@ -204,10 +218,18 @@ namespace Discontinuity
         {
             var tools = Box(parent, "action-tools");
             Button(tools, "Actions", OpenCatalog, "tool-button", "Inspect all your actions");
+            if (sim.Adjusting) Button(tools, "Weights", OpenWeights, "tool-button");
             Button(tools, "+", () => OpenEditor(null), "icon-button", "Create action");
-            foreach (var option in sim.Rank(sim.Save.player))
+            var options = sim.Rank(sim.Save.player);
+            VisualElement list = parent;
+            if (sim.Adjusting)
             {
-                var row = Box(parent, "action-row");
+                var ranked = new ScrollView(ScrollViewMode.Vertical); ranked.AddToClassList("ranked-options"); parent.Add(ranked); list = ranked;
+            }
+            foreach (var option in options)
+            {
+                var row = Box(list, "action-row");
+                if (sim.Adjusting && option == options[0]) row.AddToClassList("top-action");
                 var button = Button(row, option.choice.label, () => Advance(option.choice.id), "choice");
                 button.userData = sim.Save.player;
                 Text(row, option.Score.ToString("0.##"), "choice-score").tooltip = "Score";
@@ -240,7 +262,7 @@ namespace Discontinuity
         void OpenFactors(Option option)
         {
             var content = OpenModal(option.choice.label);
-            Text(content, sim.Name(sim.Save.player) + " / " + Simulation.Clock(sim.State.turn), "eyebrow");
+            Text(content, sim.Name(sim.Save.player) + " / " + sim.Now, "eyebrow");
             Text(content, option.Score.ToString("0.#") + " = 0 + " + option.conditions.ToString("0.#") + " conditions + " + option.manual.ToString("0.#") + " adjustment", "score-equation");
             foreach (var term in option.terms)
             {
@@ -251,8 +273,8 @@ namespace Discontinuity
             }
             if (option.terms.Count == 0) Text(content, "No condition contributes to this choice right now.", "factor-copy");
             if (sim.Valid(option.choice)) Text(content, "Increment if chosen: +" + sim.Increment(option, sim.Rank(sim.Save.player)).ToString("0.##"), "adjustment");
-            var records = sim.Save.guidance.Where(g => g.actor == sim.Save.player && g.action == option.choice.id && g.until >= g.from).ToList();
-            foreach (var g in records) Text(content, "Earlier choice: +" + g.amount.ToString("0.#") + " / " + Simulation.Clock(g.from) + "-" + Simulation.Clock(g.until), "adjustment");
+            var records = sim.VisibleAdjustments.Where(g => g.actor == sim.Save.player && g.action == option.choice.id && g.until >= g.from).ToList();
+            foreach (var g in records) Text(content, "Saved adjustment: +" + g.amount.ToString("0.#") + " / " + sim.Name(g.location) + " / " + Simulation.Clock(g.from) + (g.until == g.from ? "" : "-" + Simulation.Clock(g.until)), "adjustment");
             Text(content, "Resolves during " + (!string.IsNullOrEmpty(option.choice.destination) ? "simultaneous movement." : option.choice.phase == 0 ? "conversation, before departures." : option.choice.phase == 3 ? "the end of the turn." : "room activity, before departures."), "factor-copy");
             if (string.IsNullOrEmpty(option.choice.destination)) Text(content, "Same-phase priority this turn: " + (sim.Priority(sim.Save.player) + 1) + " of " + sim.Data.people.Count + ". Priority rotates each turn.", "factor-copy");
             Text(content, "AVAILABILITY / " + (sim.Valid(option.choice) ? "AVAILABLE" : "UNAVAILABLE"), "section-label");
@@ -272,7 +294,7 @@ namespace Discontinuity
             foreach (var e in earlier)
             {
                 var entry = Box(journal, "journal-entry"); entry.userData = e.id;
-                Text(entry, Simulation.Clock(e.turn) + " / " + sim.Name(e.actor) + " / " + sim.Name(Story.Room(e, sim.Save.player)), "event-time");
+                Text(entry, EventClock(e) + " / " + sim.Name(e.actor) + " / " + sim.Name(Story.Room(e, sim.Save.player)), "event-time");
                 Text(entry, Story.Text(sim, e, sim.Save.player), "journal-prose");
                 if (e.actor == sim.Save.player && e.alternatives != null && e.alternatives.Count > 0)
                 {
@@ -417,6 +439,7 @@ namespace Discontinuity
             Click(sim.Rank("clara").Find(o => o.choice.id == "follow:jonah").choice.label); yield return null;
             check(sim.State.Get("at:clara") == "hall", "following travels toward the last observed destination");
             yield return AuthoringSmoke(check);
+            yield return CompositionSmoke(check);
             File.WriteAllLines("artifacts/ui-verification.txt", results);
             Fixture("exchange"); Render();
             if (Argument("-capture") != null) yield return Capture();
