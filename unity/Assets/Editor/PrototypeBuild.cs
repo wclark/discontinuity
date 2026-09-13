@@ -39,7 +39,7 @@ namespace Discontinuity
             }
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Household.unity", true) };
             PlayerSettings.companyName = "Discontinuity"; PlayerSettings.productName = "Discontinuity";
-            PlayerSettings.bundleVersion = "0.4.0";
+            PlayerSettings.bundleVersion = "0.5.0";
             foreach (string path in Directory.GetFiles("Assets/Resources/Scenes", "*.png").Concat(Directory.GetFiles("Assets/Resources/Tableaux", "*.png")).Concat(new[] { "Assets/Resources/Characters.png" }))
             {
                 var textureImporter = (TextureImporter)AssetImporter.GetAtPath(path.Replace('\\', '/'));
@@ -95,7 +95,7 @@ namespace Discontinuity
                 sim.Begin("clara"); check(!sim.Save.guidance.Any(g => g.actor == "clara"), "replaying clears only that character's adjustments");
             }
             sim = new Simulation(data); sim.Step("move:hall");
-            check(sim.Save.guidance.Count == 0, "natural highest choice stores nothing");
+            check(sim.Save.guidance.Single().amount == 1, "natural highest choice records plus one");
             sim.Step("help");
             check(sim.Rank("clara").All(o => o.manual == 0), "current player never receives its own adjustments");
             sim.Begin("jonah"); sim.Step();
@@ -112,7 +112,7 @@ namespace Discontinuity
             string unchanged = JsonUtility.ToJson(sim.Save); sim.Forecast();
             check(JsonUtility.ToJson(sim.Save) == unchanged, "forecast never mutates live state or guidance");
             var restored = new Simulation(data, JsonUtility.FromJson<Campaign>(unchanged));
-            check(restored.State.Get("owner:cloth") == "jonah" && restored.Save.guidance[0].amount == 6, "JSON round trip preserves world and guidance");
+            check(restored.State.Get("owner:cloth") == "jonah" && restored.Save.guidance.Find(g => g.action == "help").amount == 6, "JSON round trip preserves world and guidance");
             restored.Begin("jonah"); restored.Step();
             check(restored.Rank("clara")[0].choice.id == "help", "restored guidance affects NPC evaluation");
             restored.State.Set("at:jonah", "garden");
@@ -120,7 +120,7 @@ namespace Discontinuity
             restored.Step(); restored.State.Set("at:jonah", "hall");
             check(restored.Rank("clara")[0].choice.id == "help", "one-turn delay still allows the authored interaction");
             restored.Step();
-            check(restored.State.applied.Count == 1, "authored interaction applies only once");
+            check(restored.State.applied.Count(id => restored.Save.guidance.Any(g => g.id == id && g.action == "help")) == 1, "authored interaction applies only once");
             sim = new Simulation(data); sim.Step("wait"); sim.Step("wait");
             check(sim.Save.guidance.Count == 2 && sim.Save.guidance.All(g => g.amount == 5), "repeated choice records fixed increments, not accumulated amounts");
             check(sim.Save.guidance[0].until < sim.Save.guidance[1].from, "repeated decision windows never overlap");
@@ -128,7 +128,7 @@ namespace Discontinuity
             check(sim.Rank("clara")[0].manual == 5, "first waiting decision uses exactly one increment");
             sim.Step(); check(sim.Rank("clara")[0].manual == 5, "next waiting decision still uses exactly one increment");
             sim = new Simulation(data); sim.Step("wait"); sim.Step("move:hall");
-            check(sim.Save.guidance.Count == 1 && sim.Save.guidance[0].until == 0, "natural choice closes earlier interval without adding an adjustment");
+            check(sim.Save.guidance.Count == 2 && sim.Save.guidance[0].until == 0 && sim.Save.guidance[1].amount == 1, "natural choice closes earlier interval and records only plus one");
             sim.Begin("jonah"); sim.Step();
             check(sim.Rank("clara")[0].choice.id == "move:hall", "natural continuation is not suppressed by expired waiting guidance");
             sim = new Simulation(data); sim.State.turn = 3; sim.Save.player = "clara";
@@ -143,7 +143,7 @@ namespace Discontinuity
             sim.Step(); var historical = sim.State.events.Find(e => e.action == "vouch");
             check(historical.alternatives.Any(o => o.action == "refuse" && o.conditions == 5), "event retains alternative rankings for later inspection");
             var tied = new Simulation(data); tied.State.turn = 14; tied.State.Set("at:clara", "kitchen"); tied.Step("move:hall");
-            check(tied.Save.guidance.Count == 0, "choice tied at highest score needs no increment");
+            check(tied.Save.guidance.Single().amount == 1, "choice tied at highest score receives plus one");
             sim = new Simulation(data);
             check(!sim.ContinueAsNext() && sim.Save.player == "clara" && sim.Save.day == 1, "incarnation is locked until day completion");
             sim.Step();
@@ -199,6 +199,7 @@ namespace Discontinuity
                 check(pixels.Any(p => p.a > .9f) && pixels.Any(p => p.a < .1f), "character column " + i + " contains a separate cutout");
             }
             passed += MovementChecks.Run();
+            passed += AuthoringChecks.Run();
             SceneCoverage.Export(data);
             string output = Path.GetFullPath("../artifacts"); Directory.CreateDirectory(output);
             File.WriteAllText(Path.Combine(output, "simulation-verification.txt"), passed + " checks passed.\n" + string.Join("\n", baseForecast.Select(e => Simulation.Clock(e.turn) + " " + e.actor + ": " + e.label)));

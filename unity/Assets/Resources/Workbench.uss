@@ -43,3 +43,32 @@ Button:focus { border-width: 1px; border-color: rgb(56, 127, 99); }
 .modal-close { min-width: 34px; width: 34px; height: 34px; margin-left: 12px; padding: 0; font-size: 24px; }
 .modal-scroll { flex-shrink: 1; }.score-equation { font-size: 18px; -unity-font-style: bold; margin: 16px 0; color: rgb(43, 116, 87); }
 .factor-copy { font-size: 13px; padding: 12px 0; border-top-width: 1px; border-top-color: rgb(214, 225, 215); }.adjustment { font-size: 14px; color: rgb(139, 83, 52); margin: 14px 0; }
+.choice-score { width: 58px; min-width: 58px; -unity-text-align: middle-right; font-size: 16px; -unity-font-style: bold; color: rgb(38, 101, 112); }
+.action-tools { flex-direction: row; align-items: center; justify-content: flex-end; margin-bottom: 8px; }
+.action-tools .icon-button { color: rgb(43, 116, 87); margin-left: 8px; }
+.tool-button { min-height: 32px; padding: 7px 12px; font-size: 13px; align-self: flex-start; background-color: rgb(227, 236, 232); margin: 4px 0; white-space: normal; }
+.section-label { font-size: 11px; -unity-font-style: bold; margin-top: 18px; margin-bottom: 10px; color: rgb(62, 91, 96); }
+.criterion-met, .criterion-unmet { font-size: 13px; padding: 5px 0; }.criterion-met { color: rgb(40, 104, 80); }.criterion-unmet { color: rgb(158, 58, 58); }
+.catalog-entry { padding: 9px 0; border-bottom-width: 1px; border-bottom-color: rgb(215, 226, 216); }
+.catalog-action { -unity-text-align: middle-left; font-size: 15px; min-height: 34px; padding: 4px 0; white-space: normal; }
+.editor-modal { width: 760px; height: 740px; }.editor-modal .modal-scroll { flex-grow: 1; }
+.editor-tabs { flex-direction: row; border-bottom-width: 1px; border-bottom-color: rgb(178, 202, 193); margin-bottom: 14px; flex-shrink: 0; }
+.editor-tab { flex-grow: 1; flex-basis: 0; min-width: 0; padding: 12px 4px; font-size: 14px; white-space: normal; }
+.editor-tab.selected { background-color: rgb(216, 234, 231); border-bottom-width: 3px; border-bottom-color: rgb(36, 108, 115); }
+.editor-field { min-height: 30px; margin: 6px 0; }.editor-field .unity-base-field__label { min-width: 130px; }
+.editor-pair { flex-direction: row; align-items: center; }.editor-pair > .editor-field { flex-grow: 1; flex-basis: 0; min-width: 0; }
+.editor-pair .unity-base-field__label { min-width: 70px; }
+.editor-pair > FloatField { flex-grow: 1; }
+.editor-footer { flex-shrink: 0; padding-top: 12px; border-top-width: 1px; border-top-color: rgb(198, 216, 206); }
+.editor-commands { flex-direction: row; justify-content: flex-end; align-items: center; }
+.save-action { min-height: 36px; padding: 8px 18px; background-color: rgb(34, 111, 99); color: white; margin-left: 12px; font-size: 14px; }
+.save-action:hover { background-color: rgb(47, 136, 121); }
+.editor-error { font-size: 13px; color: rgb(160, 50, 50); margin-bottom: 6px; }
+.condition-row, .rule-editor { border-bottom-width: 1px; border-bottom-color: rgb(205, 221, 212); padding: 10px 0; }
+.prose-field { min-height: 68px; margin: 8px 0; }.prose-field .unity-base-field__label { min-width: 130px; }.prose-field .unity-text-field__input { white-space: normal; }
+.effect-row { flex-direction: row; align-items: center; }.effect-row > .editor-field { flex-grow: 1; flex-basis: 0; min-width: 0; }
+.effect-row .unity-base-field__label { min-width: 65px; }
+.record-entry { min-height: 34px; white-space: normal; -unity-text-align: middle-left; padding: 8px 0; font-size: 12px; }
+.record-status { margin: 10px 0; color: rgb(37, 109, 104); }
+.header .icon-button { min-width: 36px; flex-shrink: 0; margin-left: 6px; }
+.editor-field .unity-base-field__label, .prose-field .unity-base-field__label { padding-right: 8px; }

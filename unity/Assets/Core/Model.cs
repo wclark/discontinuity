@@ -54,7 +54,7 @@ namespace Discontinuity
     public class Option
     {
         public Choice choice;
-        public float conditions, manual;
+        public float conditions, manual, recorded;
         public string manualId;
         public float Score { get { return conditions + manual; } }
         public List<Contribution> terms = new List<Contribution>();
@@ -76,9 +76,9 @@ namespace Discontinuity
         public int id, turn;
         public string actor, target, action, location, label, actorText, targetText, observerText;
         public string decision;
-        public string kind, destination;
+        public string kind, destination, activity;
         public bool travelBatch, quiet;
-        public float score, manual;
+        public float score, manual, recorded;
         public bool blocked, changed;
         public List<int> causes = new List<int>();
         public List<string> effects = new List<string>();
@@ -123,5 +123,16 @@ namespace Discontinuity
         public List<Guidance> guidance = new List<Guidance>();
         public List<NumberSetting> weights = new List<NumberSetting>();
         public List<Event> previous = new List<Event>();
+        public List<Choice> choices = new List<Choice>();
+        public List<Rule> rules = new List<Rule>();
+        // Only portable records pin the base scenario; ordinary saves use the installed content.
+        public Scenario scenario;
+        public bool frozenScenario;
+    }
+    public class Criterion
+    {
+        public string description;
+        public bool met;
+        public Criterion(string description, bool met) { this.description = description; this.met = met; }
     }
 }

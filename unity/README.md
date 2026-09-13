@@ -15,11 +15,24 @@ Run `./install-desktop.ps1` from the repository root after building to create th
 1. Begin as Clara in the Kitchen. Go to the Hall to meet Jonah, then choose how to treat him.
 2. Choose one action for the next fifteen minutes. All four people decide from the same start-of-turn world, then the witnessed events unfold one moment at a time. **Next moment** reads the next event; **Continue to [time]** finishes the recap. Reading does not advance the simulation or record another adjustment. You cannot choose again until the turn has finished unfolding.
 3. The illustration and room information are beside the current situation and action buttons. Complete custom illustrations depict the cloth exchange and the Clara/Jonah Archive crossing; other combinations use room paintings and independent character cutouts. Scene selection checks the actual cast, action, exposed items and movement directions. A new bystander or failed action falls back safely instead of displaying an incompatible picture. See [artwork and generation prompts](ART.md) and the [scene-library workflow](STORY_SCENES.md).
-4. Scores are not displayed in the story view. The **i** beside each action opens its exact score, satisfied and inactive conditions, necessary adjustment, earlier adjustments for that choice, and resolution phase. Close it with its close button, Escape, or the backdrop; inspecting never advances time. Only your incarnation's factors are available. **Earlier today** retains every witnessed event and optional historical factors for your own choices.
-5. The undo arrow restores the last turn within the current life. There is no Observe mode, free character selector, autoplay, omniscient timeline, forecast button, or experiment toolbar in the game.
+4. Each action shows its score, sorted highest first. The **i** opens the score equation, active/inactive contributions, the increment if chosen, recorded increments, resolution phase, availability checklist and effects. Only your incarnation's factors are available. **Actions** also lists unavailable choices with the criteria that block them. **Earlier today** retains every witnessed event and historical rankings for your own choices.
+5. The **+** beside Actions opens the action editor. The undo arrow restores the last turn or authoring change within this life. The header's download arrow opens **State records**. There is no Observe mode, free character selector, autoplay or omniscient timeline.
 6. Finish all sixteen turns and their witnessed moments. **Wake as Jonah** then begins the next incarnation. The order is Clara, Jonah, Father Vale, Dr. Merrow, then Clara again. The next person's previous adjustments are cleared; everyone else's remain. Undo cannot cross this transition.
 
-Development fixtures remain available through command-line flags only: a kindness can supply missing corroboration, humiliation can redirect the accusation onto Clara, and a warning can interrupt Jonah's Archive errand. They are not alternate story scripts; the same ordinary rules produce every event. Condition increments can still be edited in the Unity asset, without exposing other characters' internals in play.
+Development fixtures remain available through command-line flags only: a kindness can supply missing corroboration, humiliation can redirect the accusation onto Clara, and a warning can interrupt Jonah's Archive errand. They are not alternate story scripts; the same ordinary rules produce every event.
+
+## Author While Playing
+
+The action editor works on the current incarnation. It does not advance time. Save immediately refreshes the playable ranking; cancel discards the draft. Invalid drafts show errors without changing the save. Existing authored actions can be edited from their inspector, even while unavailable in the catalog.
+
+- **Action:** label, location or any room, target, inclusive time range, once-per-slot or repeatable, shared decision slot, and resolution phase. A target on a room action must be co-located. Travel specifies an adjacent destination and uses the simultaneous movement resolver.
+- **Availability:** all listed conditions must be true. Person-location conditions accept a fixed room or `Here`, resolved relative to the actor. Item-owner conditions distinguish carried objects from objects in a room. Item-here conditions include room objects and objects carried by occupants. `Is not`/`Absent` invert a condition. Arbitrary fact equality supports social and story state.
+- **Score:** baseline zero, plus independent condition sets. Each set has points, a time range and zero or more required conditions. All conditions within a set are AND; separate sets add. An empty set applies during its time range. Points never bypass availability. Existing direct condition sets can be changed or removed. Generated movement, following and waiting can also receive direct conditions; their automatic definitions and route contributions are shown, not replaced.
+- **Effects & prose:** actor/target/observer text, activity caption, quiet-event grouping and key/value fact changes. The item-transfer controls select an item and recipient; `owner:envelope = $actor` is the equivalent fact change. Every transfer requires the item to be here, any recipient to be here, and any destination room to be the current room. These automatic gates also appear in the inspector. Custom facts can feed other actions' conditions. Travel effects cannot teleport another person or also modify unrelated facts.
+
+Definitions are per-save overrides, not edits to the bundled asset. They persist through new incarnations and application restarts. Replaying a character clears their prior manual increments, not their action definitions. New scene combinations continue to use the existing safe illustration fallback.
+
+**State records** writes readable JSON containing the base scenario, overrides, current world/facts, current and previous event logs, rankings, recorded increments, inventory, phase cursor and incarnation. Its folder can be opened from the game. A record can be restored from the list or an absolute JSON file path. Restoration requires confirmation, first writes a backup of the current state, and can be undone. Restored records pin their included base scenario for reproducibility. Keep separate records to retain more than the current and immediately preceding life. Ordinary automatic saves also retain all action/rule edits but use installed base content until a pinned record is restored.
 
 ## The Design Choice
 
@@ -55,13 +68,13 @@ Reactions to a new encounter, request or warning affect the **next** turn's rank
 
 ### Prior Choices
 
-When a human selects below the highest condition score:
+Whenever the human selects an available action:
 
 ```text
-adjustment = highest_condition_score - chosen_condition_score + 1
+increment = max(0, highest_valid_score - chosen_score) + 1
 ```
 
-If already tied for highest, no adjustment is recorded. Values never increase merely because another turn passed. Records are scoped to the actor, named decision context, location, and a bounded window from the original turn through two turns later (clamped to the action's window). A later manual decision in the same context closes the earlier window, even when the new choice needs no increment. Only the latest eligible record is considered and each is consumed at most once per pass.
+Already-leading and tied choices receive +1; a lower choice receives enough to exceed the current maximum by exactly one. The event records this new increment separately from any already-applied score. Values never increase merely because another turn passed. Records are scoped to the actor, named decision context, location, and a bounded window from the original turn through two turns later (clamped to the action's window). A later manual decision in the same context closes the earlier window. Only the latest eligible record is considered and each is consumed at most once per pass.
 
 Current human choices do not receive their newly recorded adjustments. Replaying that person clears all their previous adjustments; other people's records remain. Changed condition contributions can outweigh a record, and invalid actions never receive it. This is intentionally a soft preference, not guaranteed replay.
 
@@ -73,16 +86,20 @@ Current human choices do not receive their newly recorded adjustments. Replaying
 | --- | --- |
 | `Assets/Core/Model.cs` | Serializable entities, facts, decisions, events, campaign |
 | `Assets/Core/Simulation.cs` | Validation, scoring, pathfinding, resolution, adjustments, forecast |
+| `Assets/Core/Authoring.cs` | Definition overrides, authoring validation, availability checklist, item presence |
 | `Assets/Core/HouseholdContent.cs` | Authored example definitions |
 | `Assets/Core/RoomLife.cs` | Low-weight, finite household tasks and additive content migration |
 | `Assets/Core/SceneLibrary.cs` | Observable scene signatures and exact artwork selection |
 | `Assets/Core/Story.cs` | Event-time scenes, observed arrival/departure prose, activity captions |
 | `Assets/Runtime/Household.cs` | ScriptableObject wrapper |
 | `Assets/Runtime/Workbench.cs` | Incarnation-focused UI, persistence, interaction tests |
+| `Assets/Runtime/ActionEditor.cs` | Action catalog, structured editor, portable state records |
+| `Assets/Runtime/AuthoringSmoke.cs` | Native create/edit/play/record/restore interaction checks |
 | `Assets/Runtime/SceneArt.cs` | Room paintings and independently composited character cutouts |
 | `Assets/Resources/Workbench.uss` | Interface styling |
 | `Assets/Editor/PrototypeBuild.cs` | Scene setup, regression checks, Windows build |
 | `Assets/Editor/MovementChecks.cs` | Crossing, arrivals, tie priority, follow and scene-selection regressions |
+| `Assets/Editor/AuthoringChecks.cs` | New content, hard gates, strict increments, override and record regressions |
 | `Assets/Editor/SceneCoverage.cs` | Bounded scene discovery and reusable image-generation queue |
 
 The core has no Unity dependency. Only the asset wrapper, UI, serialization adapter, and build tools use Unity APIs.
@@ -100,9 +117,9 @@ Fact records track which event most recently set them. Decision records retain t
 
 ## Verification and Persistence
 
-`Discontinuity > Verify simulation` tests defaults, alternate outcomes, necessary-only adjustments, nonaccumulation, replay clearing, invalidation, delayed encounters, stronger conditions, JSON round trips, forecasts, simultaneous item claims, and historical rankings. The report is `../artifacts/simulation-verification.txt`.
+`Discontinuity > Verify simulation` tests defaults, alternate outcomes, strict winning increments including ties, nonaccumulation, replay clearing, invalidation, delayed encounters, stronger conditions, JSON round trips, forecasts, simultaneous item claims, historical rankings, authored definitions and portable records. The report is `../artifacts/simulation-verification.txt`.
 
-The native player's `-smoke` flag drives actual UI Toolkit submit events through action-inspection popups, manual actions, the witnessed-moment sequence, save/resume, undo, a complete life, the locked incarnation transition, and experiencing an earlier kindness as Jonah. It also tests a crossing and next-turn following. Eight visual fixtures check all five backgrounds, both custom tableaux, one through four figures, and choice-button visibility, capturing the framebuffer under `../artifacts/adventure-*.png`. Run from the repository root:
+The native player's `-smoke` flag drives actual UI Toolkit submit events through action-inspection popups, manual actions, the witnessed-moment sequence, save/resume, undo, a complete life, the locked incarnation transition, and experiencing an earlier kindness as Jonah. It also tests a crossing and next-turn following. Authoring checks create a new action with presence and inventory conditions, edit its score, cancel and undo edits, execute it, inspect why it becomes unavailable, export/restore its record, and reject a missing record file. All editor tabs and the scored action list have framebuffer captures. Eight visual fixtures check all five backgrounds, both custom tableaux, one through four figures, and choice-button visibility, capturing the framebuffer under `../artifacts/adventure-*.png`. Run from the repository root:
 
 ```powershell
 ./builds/Discontinuity/Discontinuity.exe -smoke -capture artifacts/ui-smoke.png -captureQuit
@@ -110,7 +127,7 @@ The native player's `-smoke` flag drives actual UI Toolkit submit events through
 
 Capture flags use the actual rendered player framebuffer and need a visible graphics window. `-demo kindness`, `-demo humiliation`, `-demo warning`, or `-demo baseline` starts a deterministic fixture. Art fixtures include `-demo kitchen`, `archive`, `gathering`, `garden`, `chapel`, `exchange`, and `crossing`. Demo, smoke, and capture modes do not overwrite the player's save. Verification also exports `../artifacts/scene-catalog.json` with its exact sampling protocol, discovered signatures, coverage and generation prompts.
 
-Ordinary play automatically writes `household-v1.json` under Unity's `Application.persistentDataPath`, normally `%USERPROFILE%/AppData/LocalLow/Discontinuity/Discontinuity/` on Windows. The current world, event history, other-viewpoint adjustments, condition overrides, previous pass, and exact unread-moment cursor persist. This replaces browser `localStorage` for the native prototype.
+Ordinary play automatically writes `household-v1.json` under Unity's `Application.persistentDataPath`, normally `%USERPROFILE%/AppData/LocalLow/Discontinuity/Discontinuity/` on Windows. The current world, event history, other-viewpoint adjustments, action/rule overrides, previous pass, and exact unread-moment cursor persist. State records are JSON files in its `records` subfolder. Smoke-mode records go to `../artifacts/records-<width>x<height>` instead. This replaces browser `localStorage` for the native prototype.
 
 ## Deliberate Limits
 

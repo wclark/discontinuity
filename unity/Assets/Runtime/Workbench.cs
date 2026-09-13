@@ -9,7 +9,7 @@ using UnityEngine.UIElements;
 namespace Discontinuity
 {
     [RequireComponent(typeof(UIDocument))]
-    public class Workbench : MonoBehaviour
+    public partial class Workbench : MonoBehaviour
     {
         Simulation sim;
         VisualElement root;
@@ -86,7 +86,7 @@ namespace Discontinuity
         void Advance(string action)
         {
             if (sim.Ended || sim.Save.reviewPending) return;
-            undo.Push(JsonUtility.ToJson(sim.Save));
+            undo.Push(RecordJson(false));
             sim.Step(action); sim.Save.reviewPending = true; sim.Save.reviewIndex = 0;
             Persist(); Render();
         }
@@ -103,7 +103,8 @@ namespace Discontinuity
         void Undo()
         {
             if (undo.Count == 0) return;
-            sim = new Simulation(sim.Data, JsonUtility.FromJson<Campaign>(undo.Pop()));
+            var restored = JsonUtility.FromJson<Campaign>(undo.Pop());
+            sim = new Simulation(restored.scenario, restored);
             Persist(); Render();
         }
         void Continue()
@@ -137,6 +138,7 @@ namespace Discontinuity
             Text(clock, Simulation.Clock(turn) + (beat == null ? "" : " - " + Simulation.Clock(turn + 1)), "time");
             Text(clock, "SATURDAY, 17 OCTOBER", "date");
             Button(header, "\u21b6", Undo, "icon-button", "Undo last turn").SetEnabled(undo.Count > 0);
+            Button(header, "\u2193", OpenRecords, "icon-button", "State records");
 
             var scroll = new ScrollView(ScrollViewMode.Vertical); scroll.AddToClassList("page-scroll"); root.Add(scroll);
             var page = Box(scroll, "story-layout");
@@ -200,17 +202,22 @@ namespace Discontinuity
         }
         void RenderChoices(VisualElement parent)
         {
+            var tools = Box(parent, "action-tools");
+            Button(tools, "Actions", OpenCatalog, "tool-button", "Inspect all your actions");
+            Button(tools, "+", () => OpenEditor(null), "icon-button", "Create action");
             foreach (var option in sim.Rank(sim.Save.player))
             {
                 var row = Box(parent, "action-row");
                 var button = Button(row, option.choice.label, () => Advance(option.choice.id), "choice");
                 button.userData = sim.Save.player;
+                Text(row, option.Score.ToString("0.##"), "choice-score").tooltip = "Score";
                 Button details = null;
                 details = Button(row, "i", () => { modalReturn = details; OpenFactors(option); }, "inspect-button", "Decision factors: " + option.choice.label);
             }
         }
         VisualElement OpenModal(string title)
         {
+            if (modal != null) CloseModal();
             foreach (var child in root.Children()) child.SetEnabled(false);
             modal = Box(root, "modal-backdrop"); modal.focusable = true;
             var panel = Box(modal, "factor-modal");
@@ -237,19 +244,24 @@ namespace Discontinuity
             Text(content, option.Score.ToString("0.#") + " = 0 + " + option.conditions.ToString("0.#") + " conditions + " + option.manual.ToString("0.#") + " adjustment", "score-equation");
             foreach (var term in option.terms)
             {
-                var rule = sim.Data.rules.Find(r => r.id == term.id);
+                var rule = sim.Rules.First(r => r.id == term.id);
                 string score = term.active ? "+" + term.amount.ToString("0.#") : "0 (inactive; potential +" + sim.Weight(rule).ToString("0.#") + ")";
                 var label = Text(content, score + " / " + term.id + "\n" + term.description, "factor-copy");
                 label.userData = sim.Save.player;
             }
             if (option.terms.Count == 0) Text(content, "No condition contributes to this choice right now.", "factor-copy");
-            float best = sim.Rank(sim.Save.player).Max(o => o.conditions);
-            float needed = option.conditions >= best ? 0 : best - option.conditions + 1;
-            Text(content, "Adjustment needed if chosen: +" + needed.ToString("0.#"), "adjustment");
+            if (sim.Valid(option.choice)) Text(content, "Increment if chosen: +" + sim.Increment(option, sim.Rank(sim.Save.player)).ToString("0.##"), "adjustment");
             var records = sim.Save.guidance.Where(g => g.actor == sim.Save.player && g.action == option.choice.id && g.until >= g.from).ToList();
             foreach (var g in records) Text(content, "Earlier choice: +" + g.amount.ToString("0.#") + " / " + Simulation.Clock(g.from) + "-" + Simulation.Clock(g.until), "adjustment");
             Text(content, "Resolves during " + (!string.IsNullOrEmpty(option.choice.destination) ? "simultaneous movement." : option.choice.phase == 0 ? "conversation, before departures." : option.choice.phase == 3 ? "the end of the turn." : "room activity, before departures."), "factor-copy");
             if (string.IsNullOrEmpty(option.choice.destination)) Text(content, "Same-phase priority this turn: " + (sim.Priority(sim.Save.player) + 1) + " of " + sim.Data.people.Count + ". Priority rotates each turn.", "factor-copy");
+            Text(content, "AVAILABILITY / " + (sim.Valid(option.choice) ? "AVAILABLE" : "UNAVAILABLE"), "section-label");
+            foreach (var criterion in sim.Availability(option.choice))
+                Text(content, (criterion.met ? "YES / " : "NO / ") + criterion.description, criterion.met ? "criterion-met" : "criterion-unmet");
+            Text(content, "EFFECTS", "section-label");
+            foreach (var effect in option.choice.effects) Text(content, sim.Describe(new Condition(effect.key, effect.value), option.choice.actor, option.choice.target), "factor-copy");
+            if (option.choice.effects.Count == 0) Text(content, "No facts change.", "factor-copy");
+            if (!sim.Save.reviewPending && !sim.Ended) Button(content, "Edit action", () => OpenEditor(option.choice), "tool-button");
         }
         void RenderJournal(VisualElement page, List<Event> experienced)
         {
@@ -267,8 +279,8 @@ namespace Discontinuity
                     var factors = Button(entry, "i", () =>
                     {
                         var content = OpenModal(e.label + " / " + Simulation.Clock(e.turn));
-                        var recorded = sim.Save.guidance.Find(g => g.actor == e.actor && g.action == e.action && g.from == e.turn);
-                        if (recorded != null) Text(content, "Recorded choice adjustment: +" + recorded.amount.ToString("0.#"), "adjustment");
+                        float recorded = e.recorded > 0 ? e.recorded : sim.Save.guidance.Find(g => g.actor == e.actor && g.action == e.action && g.from == e.turn)?.amount ?? 0;
+                        if (recorded > 0) Text(content, "Recorded choice increment: +" + recorded.ToString("0.##"), "adjustment");
                         foreach (var option in e.alternatives)
                         {
                             var line = Text(content, option.label + " / " + (option.conditions + option.manual).ToString("0.#") + " = 0 + " + option.conditions.ToString("0.#") + " conditions + " + option.manual.ToString("0.#") + " adjustment", "factor-copy");
@@ -344,7 +356,8 @@ namespace Discontinuity
             };
             check(sim.Save.player == "clara" && !sim.ContinueAsNext(), "one incarnation, locked until completion");
             check(root.Query<Button>(className: "choice").ToList().All(b => (string)b.userData == "clara"), "only your actions are offered");
-            check(root.Query<Label>(className: "factor-copy").ToList().Count == 0 && root.Query<Label>(className: "choice-score").ToList().Count == 0, "story view has no scores or factor rows");
+            check(root.Query<Label>(className: "factor-copy").ToList().Count == 0 && root.Query<Label>(className: "choice-score").ToList().Count == sim.Rank(sim.Save.player).Count, "each action shows its score, with factors in the inspector");
+            check(root.Query<Label>(className: "choice-score").ToList().Select(l => float.Parse(l.text)).SequenceEqual(sim.Rank(sim.Save.player).Select(o => o.Score)), "visible scores follow descending engine ranking");
             string untouched = JsonUtility.ToJson(sim.Save);
             Click("Decision factors: Go to Hall"); yield return null;
             check(modal != null && root.Q<Label>(className: "score-equation").text.StartsWith("4 = 0 + 4"), "per-action popup shows the exact score equation");
@@ -355,7 +368,7 @@ namespace Discontinuity
             Click("Close decision factors"); yield return null;
             check(modal == null && root.Query<Label>(className: "factor-copy").ToList().Count == 0, "closing the popup restores the clean story view");
             Click("Go to Hall"); yield return new WaitForSecondsRealtime(.1f);
-            check(sim.State.turn == 1 && sim.Save.guidance.Count == 0, "natural movement needs no adjustment");
+            check(sim.State.turn == 1 && sim.Save.guidance.Single().amount == 1, "natural movement records plus one");
             check(sim.Save.reviewPending && root.Query<Button>(className: "choice").ToList().Count == 0, "movement resolves before the next choice");
             check(root.Query<VisualElement>(className: "cast-caption").ToList().Count == 2, "simultaneous arrivals share the same room snapshot");
             check(!sim.Experienced("clara").Any(e => e.action == "tend"), "offscreen treatment stays offscreen");
@@ -366,12 +379,12 @@ namespace Discontinuity
             Click("Decision factors: Give Jonah the clean cloth"); yield return null;
             check(root.Query<Label>(className: "adjustment").ToList().Any(l => l.text.Contains("+6")), "lower-scored choice discloses its necessary adjustment");
             Click("Close decision factors"); Click("Give Jonah the clean cloth"); yield return new WaitForSecondsRealtime(.1f);
-            check(sim.Save.guidance.Single().amount == 6, "choosing kindness records only gap plus one");
+            check(sim.Save.guidance.Find(g => g.action == "help").amount == 6, "choosing kindness records only gap plus one");
             check((string)root.Q<Image>(className: "room-painting").userData == "Tableaux/cloth-exchange", "cloth exchange selects its exact custom scene");
             yield return ReadTurn();
             check(root.Query<VisualElement>(className: "journal-entry").ToList().Any(v => sim.State.events[(int)v.userData].action == "wait"), "quiet events remain in the witnessed journal");
             Click("Undo last turn"); yield return null;
-            check(sim.State.turn == 1 && sim.Save.guidance.Count == 0, "undo restores the preceding choice and its adjustments");
+            check(sim.State.turn == 1 && sim.Save.guidance.Single().amount == 1, "undo restores the preceding choice and its adjustments");
             Click("Give Jonah the clean cloth"); yield return ReadTurn();
             while (!sim.Ended)
             {
@@ -403,6 +416,7 @@ namespace Discontinuity
             check(sim.Rank("clara").Any(o => o.choice.id == "follow:jonah"), "crossing offers a next-turn follow choice");
             Click(sim.Rank("clara").Find(o => o.choice.id == "follow:jonah").choice.label); yield return null;
             check(sim.State.Get("at:clara") == "hall", "following travels toward the last observed destination");
+            yield return AuthoringSmoke(check);
             File.WriteAllLines("artifacts/ui-verification.txt", results);
             Fixture("exchange"); Render();
             if (Argument("-capture") != null) yield return Capture();

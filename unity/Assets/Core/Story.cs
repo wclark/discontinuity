@@ -58,7 +58,7 @@ namespace Discontinuity
             if (e.blocked) return "Unable to act";
             if (Moving(e)) return Departing(e, person.id, room) ? "Leaving for " + sim.Name(Get(e.sceneAfter, "at:" + person.id)) : "Arriving";
             if (e.action == "wait") return "Waiting";
-            string activity = sim.Data.choices.Find(c => c.id == e.action && c.actor == e.actor)?.activity;
+            string activity = !string.IsNullOrEmpty(e.activity) ? e.activity : sim.Definitions.FirstOrDefault(c => c.id == e.action && c.actor == e.actor)?.activity;
             return string.IsNullOrEmpty(activity) ? e.label : activity;
         }
         public static string Situation(Simulation sim)

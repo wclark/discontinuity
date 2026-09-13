@@ -5,7 +5,7 @@ using System.Linq;
 namespace Discontinuity
 {
     // Pure C#: the same deterministic evaluator drives play, forecasts, and verification.
-    public class Simulation
+    public partial class Simulation
     {
         public readonly Scenario Data;
         public Campaign Save;
@@ -13,7 +13,9 @@ namespace Discontinuity
         public bool Ended { get { return State.turn >= Data.turns; } }
         public Simulation(Scenario data, Campaign save = null)
         {
-            Data = data; Save = save ?? new Campaign();
+            Save = save ?? new Campaign(); Data = Save.frozenScenario ? Save.scenario : data;
+            if (Save.choices == null) Save.choices = new List<Choice>();
+            if (Save.rules == null) Save.rules = new List<Rule>();
             if (Save.world == null) Save.world = Initial();
             RestoreWitnesses();
         }
@@ -75,7 +77,7 @@ namespace Discontinuity
                 if (!e.blocked)
                 {
                     if (e.action.StartsWith("move:", StringComparison.Ordinal)) world.Set("at:" + e.actor, e.action.Substring(5));
-                    var choice = Data.choices.Find(c => c.id == e.action && c.actor == e.actor);
+                    var choice = Definitions.FirstOrDefault(c => c.id == e.action && c.actor == e.actor);
                     if (choice != null) foreach (var effect in choice.effects)
                         world.Set(Resolve(effect.key, e.actor, e.target), Resolve(effect.value, e.actor, e.target));
                 }
@@ -90,15 +92,17 @@ namespace Discontinuity
             var t = Data.items.Find(v => v.id == id); return t == null ? id : t.name;
         }
         public string Resolve(string text, string actor, string target = "")
-        { return (text ?? "").Replace("$actor", actor ?? "").Replace("$target", target ?? "").Replace("$previousTurn", (State.turn - 1).ToString()); }
+        { return (text ?? "").Replace("$actor", actor ?? "").Replace("$target", target ?? "").Replace("$here", State.Get("at:" + actor)).Replace("$previousTurn", (State.turn - 1).ToString()); }
         public bool Met(Condition c, string actor, string target = "")
         {
-            bool equal = State.Get(Resolve(c.key, actor, target)) == Resolve(c.value, actor, target);
+            string key = Resolve(c.key, actor, target);
+            bool equal = (key.StartsWith("near:") ? (ItemHere(key.Substring(5), actor) ? "yes" : "no") : State.Get(key)) == Resolve(c.value, actor, target);
             return c.not ? !equal : equal;
         }
         public string Describe(Condition c, string actor, string target = "")
         {
             string key = Resolve(c.key, actor, target), val = Resolve(c.value, actor, target);
+            if (key.StartsWith("near:")) return Name(key.Substring(5)) + (c.not ? " absent from the room and its occupants" : " in the room or carried by someone here");
             if (key.StartsWith("at:")) return Name(key.Substring(3)) + (c.not ? " outside " : " in ") + Name(val);
             if (key.StartsWith("owner:")) return Name(key.Substring(6)) + (c.not ? " not with/in " : " with/in ") + Name(val);
             return key.Replace('_', ' ') + (c.not ? " != " : " = ") + val;
@@ -131,14 +135,11 @@ namespace Discontinuity
         }
         public bool Valid(Choice c)
         {
-            if (Ended || State.turn < c.from || State.turn > c.until) return false;
-            if (!string.IsNullOrEmpty(c.location) && State.Get("at:" + c.actor) != c.location) return false;
-            if (c.once && State.used.Contains(c.actor + ":" + (c.slot ?? c.id))) return false;
-            return c.requires.All(v => Met(v, c.actor, c.target));
+            return Availability(c).All(v => v.met);
         }
         public List<Choice> Choices(string actor)
         {
-            var result = Data.choices.Where(c => c.actor == actor && Valid(c)).ToList();
+            var result = Definitions.Where(c => c.actor == actor && Valid(c)).ToList();
             string here = State.Get("at:" + actor);
             foreach (var exit in Data.rooms.Find(r => r.id == here).exits)
                 result.Add(new Choice { id = "move:" + exit, actor = actor, location = here, slot = "travel:" + here,
@@ -157,9 +158,9 @@ namespace Discontinuity
             }
             result.Add(new Choice { id = "wait", actor = actor, location = here, slot = "travel:" + here, once = false, quiet = true, phase = 3,
                 label = "Wait here", actorText = "You stay, listening to the house around you.", observerText = Name(actor) + " stays in the " + Name(here) + "." });
-            return result;
+            return result.Where(Valid).ToList();
         }
-        public string Context(Choice c) { return c.slot ?? c.id; }
+        public string Context(Choice c) { return string.IsNullOrEmpty(c.slot) ? c.id : c.slot; }
         Guidance Matching(Choice c)
         {
             if (c.actor == Save.player) return null;
@@ -177,7 +178,7 @@ namespace Discontinuity
         public Option Evaluate(Choice choice)
         {
             var option = new Option { choice = choice };
-            foreach (var rule in Data.rules.Where(r => r.actor == choice.actor))
+            foreach (var rule in Rules.Where(r => r.actor == choice.actor))
             {
                 string action = rule.action;
                 if (!string.IsNullOrEmpty(rule.route))
@@ -192,23 +193,26 @@ namespace Discontinuity
                     description = Clock(rule.from) + "-" + Clock(rule.until) + (rule.conditions.Count == 0 ? "" : " | " +
                         string.Join("; ", rule.conditions.Select(c => Describe(c, choice.actor, choice.target)))) };
                 if (active)
-                    foreach (var c in rule.conditions) AddCause(term.causes, State.Source(Resolve(c.key, choice.actor, choice.target)));
+                    foreach (var c in rule.conditions) AddConditionCauses(term.causes, c, choice.actor, choice.target);
                 option.terms.Add(term); option.conditions += term.amount;
             }
             var guidance = Matching(choice);
             if (guidance != null) { option.manual = guidance.amount; option.manualId = guidance.id; }
             return option;
         }
-        void Record(Choice c, List<Option> options)
+        public float Increment(Option chosen, List<Option> options)
         {
+            return Math.Max(0, options.Max(o => o.Score) - chosen.Score) + 1;
+        }
+        void Record(Option chosen, List<Option> options)
+        {
+            var c = chosen.choice;
             int turn = State.turn;
             // A later decision in this context closes the earlier interval, including natural choices.
             foreach (var g in Save.guidance.Where(g => g.actor == c.actor && g.context == Context(c) && g.until >= turn)) g.until = turn - 1;
-            var chosen = options.Find(o => o.choice.id == c.id);
-            float best = options.Max(o => o.conditions);
-            if (chosen == null || chosen.conditions >= best) return;
+            chosen.recorded = Increment(chosen, options);
             Save.guidance.Add(new Guidance { id = Guid.NewGuid().ToString("N"), actor = c.actor, action = c.id,
-                context = Context(c), location = c.location, from = turn, until = Math.Min(c.until, turn + 2), amount = best - chosen.conditions + 1 });
+                context = Context(c), location = c.location, from = turn, until = Math.Min(c.until, turn + 2), amount = chosen.recorded });
         }
         static void AddCause(List<int> list, int id) { if (id >= 0 && !list.Contains(id)) list.Add(id); }
         public int Priority(string actor)
@@ -225,7 +229,7 @@ namespace Discontinuity
             {
                 var choices = rankings[Save.player]; var picked = choices.Find(o => o.choice.id == humanChoice);
                 if (picked == null) return;
-                Record(picked.choice, choices);
+                Record(picked, choices);
                 proposals[Data.people.FindIndex(p => p.id == Save.player)] = picked;
             }
             var ordered = proposals.OrderBy(o => o.choice.phase).ThenBy(o => Priority(o.choice.actor)).ToList();
@@ -239,8 +243,8 @@ namespace Discontinuity
                 var c = proposal.choice;
                 bool valid = validAtDeparture ?? Valid(c);
                 var e = new Event { id = State.events.Count, turn = State.turn, actor = c.actor, target = c.target,
-                    kind = "action", destination = c.destination, quiet = c.quiet,
-                    action = c.id, label = c.label, location = State.Get("at:" + c.actor), score = proposal.Score, manual = proposal.manual,
+                    kind = "action", destination = c.destination, quiet = c.quiet, activity = c.activity,
+                    action = c.id, label = c.label, location = State.Get("at:" + c.actor), score = proposal.Score, manual = proposal.manual, recorded = proposal.recorded,
                     actorText = c.actorText, targetText = c.targetText, observerText = c.observerText, blocked = !valid,
                     alternatives = rankings[c.actor].Select(o => new DecisionOption { action = o.choice.id, label = o.choice.label,
                         conditions = o.conditions, manual = o.manual }).ToList(),
@@ -250,7 +254,7 @@ namespace Discontinuity
                 AddWitnesses(e, State);
                 AddCause(e.causes, State.Source("at:" + c.actor));
                 foreach (var term in proposal.terms.Where(t => t.active)) foreach (int cause in term.causes) AddCause(e.causes, cause);
-                foreach (var condition in c.requires) AddCause(e.causes, State.Source(Resolve(condition.key, c.actor, c.target)));
+                foreach (var condition in c.requires) AddConditionCauses(e.causes, condition, c.actor, c.target);
                 if (valid)
                 {
                     foreach (var effect in c.effects)
@@ -258,7 +262,7 @@ namespace Discontinuity
                         string key = Resolve(effect.key, c.actor, c.target), value = Resolve(effect.value, c.actor, c.target);
                         State.Set(key, value, e.id); e.effects.Add(key + " = " + value);
                     }
-                    if (c.once) State.used.Add(c.actor + ":" + (c.slot ?? c.id));
+                    if (c.once) State.used.Add(c.actor + ":" + Context(c));
                     if (proposal.manualId != null) State.applied.Add(proposal.manualId);
                     AddWitnesses(e, State);
                 }
@@ -324,7 +328,8 @@ namespace Discontinuity
         public List<Event> Forecast()
         {
             var campaign = new Campaign { player = "", world = State.Copy(), guidance = new List<Guidance>(Save.guidance.Where(g => g.actor != Save.player)),
-                weights = Save.weights.Select(s => new NumberSetting { id = s.id, value = s.value }).ToList(), previous = Save.previous };
+                weights = Save.weights.Select(s => new NumberSetting { id = s.id, value = s.value }).ToList(), previous = Save.previous,
+                choices = new List<Choice>(Save.choices), rules = new List<Rule>(Save.rules) };
             var sim = new Simulation(Data, campaign);
             while (!sim.Ended) sim.Step();
             return sim.State.events;
